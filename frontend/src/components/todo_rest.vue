@@ -10,14 +10,13 @@
       <div v-for="(todo) in todos" :key="todo.id">
         <label>{{todo.id}}.</label>
         <!-- we also want to be able to directly update the existing todo, this is handled by v-model, but our database needs to be handled differently-->
-        <input v-model="todo.content" :disabled="todo.done" @keyup.enter="update_todo(id=todo.id, content=todo.content, done=todo.done, delete_=false)">
+        <input v-model="todo.content" :disabled="todo.done" @change="update_todo(id=todo.id, content=todo.content, done=todo.done, delete_=false)">
         <!-- when click the checkbox, the input becomes disabled -->
         <!-- use @change rather than @click, the @click event happens too fast that new_val is not sent through  -->
         <input type="checkbox" v-model="todo.done" @change="update_todo(id=todo.id, content=todo.content, done=todo.done, delete_=false)">
         <button @click="update_todo(id=todo.id, content='', done=true, delete_=true)">Delete</button>
       </div>
-      <button @click="read_todo()">read todo</button>
-      <button @click="update_todo()">update todo</button>
+      <button @click="read_todo()">refresh todo</button>
     </div>
   </div>
 </template>

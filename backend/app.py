@@ -85,7 +85,7 @@ class todo_database_access(Resource):
     def post(self):
         # accept argument by parsing the packages
         todo_args = request.get_json()
-        print(todo_args)
+        # print(todo_args)
         modify_todo(**todo_args)
         return jsonify(status='modify success')
 
