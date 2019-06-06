@@ -124,22 +124,25 @@ class upload_file(Resource):
     def post(self):
         # curl http://localhost:5000/upload --data-binary "file=@test.txt" -X POST
         # curl -F ‘data=@test.txt’ http://localhost:5000/upload
-        file_args = request.get_json()
-        file = request.files["file"]
-        print(file_args)
-        # in case of empty file
-        if file.filename == "":
-            return {"message": "No file found", "status": "error"}
+        # only check when a file is uploaded https://www.programcreek.com/python/example/51528/flask.request.files
+        if 'file' in request.files:
+            file = request.files["file"]
+            # in case of empty file
+            if file.filename == "":
+                return {"message": "No file found", "status": "error"}
 
-        elif allowed_file(file.filename):
-            # https://werkzeug.palletsprojects.com/en/0.15.x/utils/#werkzeug.utils.secure_filename
-            filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
-            return {
-                "filename": filename,
-                "message": "file uploaded",
-                "status": "success",
-            }
+            elif allowed_file(file.filename):
+                # https://werkzeug.palletsprojects.com/en/0.15.x/utils/#werkzeug.utils.secure_filename
+                filename = secure_filename(file.filename)
+                file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
+                return {
+                    "filename": filename,
+                    "message": "file uploaded",
+                    "status": "success",
+                }
+        # same api can accept other arguments for file system modification
+        file_args = request.get_json()
+        print(file_args)
 
         if "cancel_upload" in file_args:
             filename = file_args["cancel_upload"]
