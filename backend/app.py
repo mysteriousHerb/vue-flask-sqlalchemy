@@ -44,13 +44,11 @@ class TodoSchema(ma.ModelSchema):
 
 # Create the database model  https://www.lucidchart.com/pages/database-diagram/database-design#discovery__top
 # logical structure of a database and manner data can be stored, organized and manipulated.
-class FileContents(db.Model):
+class FileEntry(db.Model):
     # Use Column to define a column.
     id = db.Column("file_id", db.Integer, primary_key=True)
-    name = db.Column(db.String)
+    user_name = db.Column(db.String)
     filepath = db.Column(db.String)
-    # def __init__ is optional:
-    # SQLAlchemy adds an implicit constructor to accept keyword arguments for all its columns and relationships
 
 
 # if the database does not exist, use db.create_all()
@@ -61,10 +59,8 @@ def initialize_database():
         db.create_all()
         # put some place holder data
         todo1 = Todo(content="buy food", done=False)
-        todo2 = Todo(content="cook food", done=False)
         # add and then commit to apply changes
         db.session.add(todo1)
-        db.session.add(todo2)
         db.session.commit()
         # delete use: db.session.delete(me)
 
@@ -114,6 +110,7 @@ ALLOWED_EXTENSIONS = ["txt", "pdf", "png", "jpg", "jpeg", "gif"]
 
 
 def allowed_file(filename):
+    # string.rsplit(separator, max) Specifies how many splits to do.
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
@@ -124,22 +121,34 @@ class upload_file(Resource):
     def post(self):
         # curl http://localhost:5000/upload --data-binary "file=@test.txt" -X POST
         # curl -F ‘data=@test.txt’ http://localhost:5000/upload
-        # only check when a file is uploaded https://www.programcreek.com/python/example/51528/flask.request.files
-        if 'file' in request.files:
-            file = request.files["file"]
-            # in case of empty file
+        # use request.files.get() could prevent 400 error
+        # https://scotch.io/bar-talk/processing-incoming-request-data-in-flask
+        file = request.files.get('file')
+        if file:
             if file.filename == "":
                 return {"message": "No file found", "status": "error"}
 
             elif allowed_file(file.filename):
                 # https://werkzeug.palletsprojects.com/en/0.15.x/utils/#werkzeug.utils.secure_filename
                 filename = secure_filename(file.filename)
+                filename_no_extension = filename.split('.')[0]
+
                 file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
                 return {
                     "filename": filename,
                     "message": "file uploaded",
                     "status": "success",
                 }
+
+                existed_entry = db.session.query(FileEntry.name).filter_by(user_name=filename_no_extension).first()
+                if existed_entry is None:
+                    file_entry = FileEntry(user_name=filename_no_extension, filepath=os.path.join(app.config["UPLOAD_FOLDER"], filename))
+                    db.session.add(file_entry)
+                else:
+                    # if the user_name  already exist, just update
+                    existed_entry.filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+                db.session.commit()
+
         # same api can accept other arguments for file system modification
         file_args = request.get_json()
         print(file_args)
@@ -148,6 +157,9 @@ class upload_file(Resource):
             filename = file_args["cancel_upload"]
             try:
                 os.remove(os.path.join(app.config["UPLOAD_FOLDER"], filename))
+                existed_entry = db.session.query(FileEntry.name).filter_by(user_name=filename_no_extension).first()
+                db.session.delete(existed_entry)
+                db.session.commit()
             except:
                 print("file not exist")
 
@@ -164,6 +176,6 @@ api.add_resource(download_file, "/download_file")
 
 
 if __name__ == "__main__":
-    # initialize_database()
+    initialize_database()
     # query_database()
     app.run(debug=True)
