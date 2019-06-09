@@ -15,8 +15,8 @@ flask-marshmallow = "*"
 marshmallow-sqlalchemy = "*"
 requests = "*"
 
-[requires]
-python_version >= "3.6"
+#[requires]
+#python_version = "3.6+"
 
 [pipenv]
 allow_prereleases = true

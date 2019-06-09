@@ -16,6 +16,8 @@
 
     <!-- custom function called with buttons -->
     <button @click="removeAllFiles">Remove All Files</button>
+    <button @click="download_file"> Download file</button>
+    <br/>
     <img src="http://localhost:5000/download_file"/>
   </div>
 </template>
@@ -51,23 +53,24 @@ export default {
         method: "POST",
         data: {
           file: '',
-          cancel_upload: file["name"]
-        }
-      });
+          cancel_file: file["name"],
+        },
+      }).then(response => {console.log(response)});
     },
-    download_file(file) {
+    download_file(filename='download') {
       // https://www.tutorialspoint.com/How-to-import-a-Python-module-given-the-full-path
-      var filename = file["name"];
       this.axios({
-        url: "http://localhost:5000/generate_encodings",
-        data:{download_encodings: filename},
-        method: "POST",
+        url: "http://localhost:5000/download_file",
+        method: "GET",
         responseType: "blob" // important
       }).then(response => {
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement("a");
+        console.log(response)
         link.href = url;
-        link.setAttribute("download", filename+'.csv'); //or any other extension
+        // Filename seems to have to be changed unless otherwise provided
+        // the extension can be automatically decided
+        link.setAttribute("download", filename + '.' + response.data.type.split("/")[1]); 
         document.body.appendChild(link);
         link.click();
       });

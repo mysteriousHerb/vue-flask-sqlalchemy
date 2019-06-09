@@ -50,6 +50,12 @@ class FileEntry(db.Model):
     user_name = db.Column(db.String)
     filepath = db.Column(db.String)
 
+class FileEntrySchema(ma.ModelSchema):
+    # class Meta options are a way to configure and modify a Schema's behavior.
+    class Meta:
+        model = FileEntry
+
+
 
 # if the database does not exist, use db.create_all()
 def initialize_database():
@@ -58,9 +64,12 @@ def initialize_database():
     except:
         db.create_all()
         # put some place holder data
-        todo1 = Todo(content="buy food", done=False)
+        todo0 = Todo(content="buy food", done=False)
+        file_entry_0 = FileEntry(user_name="Tian", filepath='C:')
+
         # add and then commit to apply changes
-        db.session.add(todo1)
+        db.session.add(todo0)
+        db.session.add(file_entry_0)
         db.session.commit()
         # delete use: db.session.delete(me)
 
@@ -108,39 +117,35 @@ class todo_database_access(Resource):
 
 ALLOWED_EXTENSIONS = ["txt", "pdf", "png", "jpg", "jpeg", "gif"]
 
-
 def allowed_file(filename):
     # string.rsplit(separator, max) Specifies how many splits to do.
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+    if "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS:
+        return True
+    else:
+        return False
 
 
 class upload_file(Resource):
-    # https://github.com/flask-restful/flask-restful/issues/485
-    # http://flask.pocoo.org/docs/1.0/patterns/fileuploads/
-    # accept argument by parsing the packages
+    def get(self):
+        file_entries = FileEntry.query.all()
+        file_entries_schema = FileEntrySchema(many=True)
+        output = file_entries_schema.dump(file_entries)
+        return output
+
     def post(self):
-        # curl http://localhost:5000/upload --data-binary "file=@test.txt" -X POST
-        # curl -F ‘data=@test.txt’ http://localhost:5000/upload
-        # use request.files.get() could prevent 400 error
-        # https://scotch.io/bar-talk/processing-incoming-request-data-in-flask
         file = request.files.get('file')
         if file:
             if file.filename == "":
                 return {"message": "No file found", "status": "error"}
 
-            elif allowed_file(file.filename):
+            elif allowed_file(file.filename) is True:
                 # https://werkzeug.palletsprojects.com/en/0.15.x/utils/#werkzeug.utils.secure_filename
                 filename = secure_filename(file.filename)
-                filename_no_extension = filename.split('.')[0]
-
+                filename_no_extension = filename.rsplit(".", 1)[0]
                 file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
-                return {
-                    "filename": filename,
-                    "message": "file uploaded",
-                    "status": "success",
-                }
 
-                existed_entry = db.session.query(FileEntry.name).filter_by(user_name=filename_no_extension).first()
+                # existed_entry = FileEntry.query.all().filter_by(user_name=filename_no_extension).first()
+                existed_entry = FileEntry.query.filter_by(user_name=filename_no_extension).first()
                 if existed_entry is None:
                     file_entry = FileEntry(user_name=filename_no_extension, filepath=os.path.join(app.config["UPLOAD_FOLDER"], filename))
                     db.session.add(file_entry)
@@ -149,25 +154,33 @@ class upload_file(Resource):
                     existed_entry.filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
                 db.session.commit()
 
-        # same api can accept other arguments for file system modification
-        file_args = request.get_json()
-        print(file_args)
+                return {
+                    "filename": filename,
+                    "message": "file uploaded",
+                    "status": "success",
+                }
 
-        if "cancel_upload" in file_args:
-            filename = file_args["cancel_upload"]
+        # same api can accept other arguments for file system modification, using json to communicate
+        file_upload_args = request.get_json()
+        print(file_upload_args)
+
+        if "cancel_upload" in file_upload_args:
+            filename = file_upload_args["cancel_file"]
+            filename = secure_filename(file.filename)
+            filename_no_extension = filename.rsplit(".", 1)[0]
+            existed_entry = FileEntry.query.filter_by(user_name=filename_no_extension).first()
+            db.session.delete(existed_entry)
+            db.session.commit()
             try:
                 os.remove(os.path.join(app.config["UPLOAD_FOLDER"], filename))
-                existed_entry = db.session.query(FileEntry.name).filter_by(user_name=filename_no_extension).first()
-                db.session.delete(existed_entry)
-                db.session.commit()
-            except:
-                print("file not exist")
+            except FileNotFoundError:
+                print('file is already deleted')
 
 
 class download_file(Resource):
     # http://flask.pocoo.org/docs/1.0/patterns/fileuploads/
     def get(self):
-        return send_from_directory(app.config["UPLOAD_FOLDER"], "alex.jpg")
+        return send_from_directory(app.config["UPLOAD_FOLDER"], "alex.jpg", as_attachment=True)
 
 
 api.add_resource(todo_database_access, "/todo_db")
