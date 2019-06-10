@@ -210,5 +210,4 @@ api.add_resource(download_file, "/download_file")
 
 if __name__ == "__main__":
     initialize()
-    # query_database()
-    app.run(debug=True)
+    app.run()
