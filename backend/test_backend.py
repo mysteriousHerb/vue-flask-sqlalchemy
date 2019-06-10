@@ -29,7 +29,11 @@ def query():
 # query()
 
 
-query()
-# query file_entry
-response = requests.get('http://localhost:5000/upload_file')
-print(response.json())
+# query()
+# # query file_entry
+# response = requests.get('http://localhost:5000/upload_file')
+# print(response.json())
+
+response = requests.get('http://localhost:5000/download_file')
+print(response.headers)
+

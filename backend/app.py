@@ -9,11 +9,13 @@ from flask_marshmallow import Marshmallow
 
 from werkzeug.utils import secure_filename
 import os
+import shutil
 
 
 # https://flaskvuejs.herokuapp.com/sqlalchemy
 app = Flask(__name__)
-CORS(app)
+CORS(app, expose_headers=["x-suggested-filename", "x-suggested-filetype"])
+
 # load settings from the config.py
 app.config.from_object(Config)
 # for RESTful api
@@ -41,37 +43,38 @@ class TodoSchema(ma.ModelSchema):
     class Meta:
         model = Todo
 
-
-# Create the database model  https://www.lucidchart.com/pages/database-diagram/database-design#discovery__top
-# logical structure of a database and manner data can be stored, organized and manipulated.
 class FileEntry(db.Model):
-    # Use Column to define a column.
     id = db.Column("file_id", db.Integer, primary_key=True)
-    user_name = db.Column(db.String)
+    name = db.Column(db.String)
     filepath = db.Column(db.String)
 
 class FileEntrySchema(ma.ModelSchema):
-    # class Meta options are a way to configure and modify a Schema's behavior.
     class Meta:
         model = FileEntry
 
 
-
 # if the database does not exist, use db.create_all()
-def initialize_database():
+def initialize():
     try:
         Todo.query.get(1)
+        FileEntry.query.get(1)        
     except:
+        print('creating database..')
         db.create_all()
-        # put some place holder data
-        todo0 = Todo(content="buy food", done=False)
-        file_entry_0 = FileEntry(user_name="Tian", filepath='C:')
+        # # put some place holder data
+        # todo0 = Todo(content="buy food", done=False)
+        # FileEntry.query.get(1)
+        # file_entry_0 = FileEntry(name="Tian", filepath='C:')
 
-        # add and then commit to apply changes
-        db.session.add(todo0)
-        db.session.add(file_entry_0)
-        db.session.commit()
-        # delete use: db.session.delete(me)
+        # # add and then commit to apply changes
+        # db.session.add(todo0)
+        # db.session.add(file_entry_0)
+        # db.session.commit()
+        # # delete use: db.session.delete(me)
+    
+    if not os.path.exists(app.config['UPLOAD_FOLDER']):
+        print('creating upload folder')
+        os.makedirs(app.config['UPLOAD_FOLDER'])
 
 
 def query_database():
@@ -126,12 +129,6 @@ def allowed_file(filename):
 
 
 class upload_file(Resource):
-    def get(self):
-        file_entries = FileEntry.query.all()
-        file_entries_schema = FileEntrySchema(many=True)
-        output = file_entries_schema.dump(file_entries)
-        return output
-
     def post(self):
         file = request.files.get('file')
         if file:
@@ -142,17 +139,18 @@ class upload_file(Resource):
                 # https://werkzeug.palletsprojects.com/en/0.15.x/utils/#werkzeug.utils.secure_filename
                 filename = secure_filename(file.filename)
                 filename_no_extension = filename.rsplit(".", 1)[0]
-                file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
 
-                # existed_entry = FileEntry.query.all().filter_by(user_name=filename_no_extension).first()
-                existed_entry = FileEntry.query.filter_by(user_name=filename_no_extension).first()
+                existed_entry = FileEntry.query.filter_by(name=filename_no_extension).first()
                 if existed_entry is None:
-                    file_entry = FileEntry(user_name=filename_no_extension, filepath=os.path.join(app.config["UPLOAD_FOLDER"], filename))
+                    file_entry = FileEntry(name=filename_no_extension, filepath=os.path.join(app.config["UPLOAD_FOLDER"], filename))
                     db.session.add(file_entry)
                 else:
-                    # if the user_name  already exist, just update
+                    # if the name  already exist, remove the existing file and update the db entry
+                    os.remove(existed_entry.filepath)
                     existed_entry.filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
                 db.session.commit()
+
+                file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
 
                 return {
                     "filename": filename,
@@ -164,11 +162,11 @@ class upload_file(Resource):
         file_upload_args = request.get_json()
         print(file_upload_args)
 
-        if "cancel_upload" in file_upload_args:
-            filename = file_upload_args["cancel_file"]
-            filename = secure_filename(file.filename)
+        if "remove_file" in file_upload_args:
+            filename = file_upload_args["remove_file"]
+            filename = secure_filename(filename)
             filename_no_extension = filename.rsplit(".", 1)[0]
-            existed_entry = FileEntry.query.filter_by(user_name=filename_no_extension).first()
+            existed_entry = FileEntry.query.filter_by(name=filename_no_extension).first()
             db.session.delete(existed_entry)
             db.session.commit()
             try:
@@ -176,12 +174,34 @@ class upload_file(Resource):
             except FileNotFoundError:
                 print('file is already deleted')
 
-
 class download_file(Resource):
     # http://flask.pocoo.org/docs/1.0/patterns/fileuploads/
     def get(self):
-        return send_from_directory(app.config["UPLOAD_FOLDER"], "alex.jpg", as_attachment=True)
+        response =  send_from_directory(app.config["UPLOAD_FOLDER"], 'download.jpg')
+        response.headers['x-suggested-filename'] = 'download.jpg'.split('.')[0]
+        response.headers['x-suggested-filetype'] = 'download.jpg'.split('.')[1]
+        # https://stackoverflow.com/questions/41543951/how-to-change-downloading-name-in-flask
+        # to pass the filename as header to frontend, we need to solve by CORS setting
 
+        return response
+    
+    def post(self):
+        args = request.get_json()
+        if 'index_files' in args:
+            if args['index_files'] is True:
+                file_entries = FileEntry.query.all()
+                file_entries_schema = FileEntrySchema(many=True)
+                output = file_entries_schema.dump(file_entries)
+                return output
+
+        if 'change_file' in args:
+            filename_no_extension = args['change_file']
+            existed_entry = FileEntry.query.filter_by(name=filename_no_extension).first()
+            filepath = existed_entry.filepath
+            shutil.copy2(filepath, os.path.join(app.config["UPLOAD_FOLDER"], 'download.jpg'))
+
+            return 200
+            
 
 api.add_resource(todo_database_access, "/todo_db")
 api.add_resource(upload_file, "/upload_file")
@@ -189,6 +209,6 @@ api.add_resource(download_file, "/download_file")
 
 
 if __name__ == "__main__":
-    initialize_database()
+    initialize()
     # query_database()
     app.run(debug=True)

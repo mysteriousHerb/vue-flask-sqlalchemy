@@ -1,76 +1,78 @@
 <template>
-  <v-container grid-list-md text-xs-center>
-    <v-layout align-center justify-center>
-      <v-flex>
-        <v-btn large dark color="green" @click="read_todo()">
-          <v-icon dark>refresh</v-icon>Fetch database
-        </v-btn>
-      </v-flex>
-      <v-progress-circular :value="progress"></v-progress-circular>
-      <span>Progress so far</span>
-      <v-flex></v-flex>
-    </v-layout>
+  <div>
+    <v-container grid-list-md text-xs-center>
+      <v-layout align-center justify-center>
+        <v-flex>
+          <v-btn large dark color="green" @click="read_todo()">
+            <v-icon dark>refresh</v-icon>Fetch database
+          </v-btn>
+        </v-flex>
+        <v-progress-circular :value="progress"></v-progress-circular>
+        <span>Progress so far</span>
+        <v-flex></v-flex>
+      </v-layout>
 
-    <v-layout align-center justify-center>
-      <v-flex xs8>
-        <!-- use v-model for 2-way binding, call method when user press enter @keyup.enter-->
-        <!-- <v-text-field v-model="new_todo" placeholder="edit me" @keyup.enter="add_todo()"> -->
-        <v-text-field
-          v-model="new_todo"
-          placeholder="edit me"
-          label="New Task"
-          clearable
-          @keydown.enter="update_todo(id=-1, content=new_todo, done=false, delete_=false)"
-        ></v-text-field>
-      </v-flex>
-      <v-flex xs1/>
-      <v-flex xs1>
-        <v-btn
-          small
-          fab
-          dark
-          color="teal"
-          @click="update_todo(id=-1, content=new_todo, done=false, delete_=false)"
-        >
-          <v-icon dark>add</v-icon>
-        </v-btn>
-      </v-flex>
-    </v-layout>
-
-    <div v-for="(todo) in todos" :key="todo.id">
       <v-layout align-center justify-center>
         <v-flex xs8>
-          <!-- we also want to be able to directly update the existing todo, this is handled by v-model, but our database needs to be handled differently-->
+          <!-- use v-model for 2-way binding, call method when user press enter @keyup.enter-->
+          <!-- <v-text-field v-model="new_todo" placeholder="edit me" @keyup.enter="add_todo()"> -->
           <v-text-field
-            v-model="todo.content"
-            :label="String(todo.id)"
-            :disabled="todo.done"
-            @change="update_todo(id=todo.id, content=todo.content, done=todo.done, delete_=false)"
-          />
+            v-model="new_todo"
+            placeholder="edit me"
+            label="New Task"
+            clearable
+            @keydown.enter="update_todo(id=-1, content=new_todo, done=false, delete_=false)"
+          ></v-text-field>
         </v-flex>
-        <v-flex xs1>
-          <!-- when click the checkbox, the input becomes disabled -->
-          <!-- use @change rather than @click, the @click event happens too fast that new_val is not sent through  -->
-          <v-switch
-            v-model="todo.done"
-            label="Done?"
-            @change="update_todo(id=todo.id, content=todo.content, done=todo.done, delete_=false)"
-          />
-        </v-flex>
+        <v-flex xs1/>
         <v-flex xs1>
           <v-btn
             small
             fab
             dark
-            color="error"
-            @click="update_todo(id=todo.id, content='', done=true, delete_=true)"
+            color="teal"
+            @click="update_todo(id=-1, content=new_todo, done=false, delete_=false)"
           >
-            <v-icon dark>remove</v-icon>
+            <v-icon dark>add</v-icon>
           </v-btn>
         </v-flex>
       </v-layout>
-    </div>
-  </v-container>
+
+      <div v-for="(todo) in todos" :key="todo.id">
+        <v-layout align-center justify-center>
+          <v-flex xs8>
+            <!-- we also want to be able to directly update the existing todo, this is handled by v-model, but our database needs to be handled differently-->
+            <v-text-field
+              v-model="todo.content"
+              :label="String(todo.id)"
+              :disabled="todo.done"
+              @change="update_todo(id=todo.id, content=todo.content, done=todo.done, delete_=false)"
+            />
+          </v-flex>
+          <v-flex xs1>
+            <!-- when click the checkbox, the input becomes disabled -->
+            <!-- use @change rather than @click, the @click event happens too fast that new_val is not sent through  -->
+            <v-switch
+              v-model="todo.done"
+              label="Done?"
+              @change="update_todo(id=todo.id, content=todo.content, done=todo.done, delete_=false)"
+            />
+          </v-flex>
+          <v-flex xs1>
+            <v-btn
+              small
+              fab
+              dark
+              color="error"
+              @click="update_todo(id=todo.id, content='', done=true, delete_=true)"
+            >
+              <v-icon dark>remove</v-icon>
+            </v-btn>
+          </v-flex>
+        </v-layout>
+      </div>
+    </v-container>
+  </div>
 </template>
 
 <script>

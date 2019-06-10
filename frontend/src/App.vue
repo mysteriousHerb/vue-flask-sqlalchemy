@@ -1,7 +1,6 @@
 <template>
   <div id="app">
     <v-app>
-      
       <!-- drawer is the section popup from the left-->
       <v-navigation-drawer fixed v-model="drawer" app>
         <v-list dense>
@@ -31,29 +30,14 @@
         </v-container>
       </v-content>
 
-      <!-- <v-footer color="#41B883" app inset>
-        <span class="white--text"></span>
-      </v-footer> -->
-
-<v-bottom-nav
-      :active.sync="current_view"
-      :value="true"
-      absolute
-      color="transparent"
-    >
-    <div v-for="route in routes" :key="route.id">
-      <v-btn
-        color="teal"
-        flat
-        :value="route.name"
-        @click="change_view(route.name)"
-      >
-        <span>{{route.name}}</span>
-        <v-icon>{{route.icon}}</v-icon>
-      </v-btn>
-    </div>
-    </v-bottom-nav>
-
+      <v-bottom-nav :active.sync="current_view" :value="true" absolute color="transparent">
+        <div v-for="route in routes" :key="route.id">
+          <v-btn color="teal" flat :value="route.name" @click="change_view(route.name)">
+            <span>{{route.name}}</span>
+            <v-icon>{{route.icon}}</v-icon>
+          </v-btn>
+        </div>
+      </v-bottom-nav>
     </v-app>
   </div>
 </template>
@@ -68,11 +52,11 @@ export default {
         { name: "About", address: "/about", icon: "person" },
         { name: "Todo", address: "/todo", icon: "note" }
       ],
-      current_view: 'Home'
+      current_view: "Home"
     };
   },
-  mounted: function(){
-    this.change_view(this.current_view)
+  mounted: function() {
+    this.change_view(this.current_view);
   },
   methods: {
     change_view: function(view) {
