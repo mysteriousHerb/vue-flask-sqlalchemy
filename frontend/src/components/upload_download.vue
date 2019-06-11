@@ -89,9 +89,9 @@ export default {
       }).then(response => (this.existing_files = response.data));
     },
 
-    // removeAllFiles: function() {
-    //   this.$refs.myVueDropzone.removeAllFiles();
-    // },
+    removeAllFiles: function() {
+      this.$refs.myVueDropzone.removeAllFiles();
+    },
     upload_complete: function(file, response) {
       console.log("uploaded");
       console.log(file["name"]);
