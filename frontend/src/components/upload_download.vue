@@ -29,7 +29,7 @@
       <br>
       <v-layout align-center justify-center>
         <v-flex xs10>
-          <v-img src="http://localhost:5000/download_file"/>
+          <v-img :src="image_location"/>
         </v-flex>
       </v-layout>
 
@@ -66,15 +66,15 @@ export default {
     return {
       // dropzone settings
       dropzoneOptions: {
-        url: "http://localhost:5000/upload_file",
+        url: this.$API_URL + "/upload_file",
         addRemoveLinks: true,
         thumbnailWidth: 150,
         maxFilesize: 0.5,
         maxFiles: 4,
         dictDefaultMessage: "<i class='fa fa-cloud-upload'></i>UPLOAD ME"
       },
-      existing_files: [{ name: "", filepath: "", active: false},
-      ]
+      existing_files: [{ name: "", filepath: "", active: false},],
+      image_location: this.$API_URL + "/download_file",
     };
   },
   mounted: function() {
@@ -83,7 +83,7 @@ export default {
   methods: {
     read_existing_files: function() {
       this.axios({
-        url: "http://localhost:5000/download_file",
+        url: this.$API_URL + "/download_file",
         method: "POST",
         data: { index_files: true }
       }).then(response => (this.existing_files = response.data));
@@ -99,7 +99,7 @@ export default {
     remove_file: function(file, error, xhr) {
       // https://alligator.io/vuejs/rest-api-axios/
       this.axios({
-        url: "http://localhost:5000/upload_file",
+        url: this.$API_URL + "/upload_file",
         method: "POST",
         data: {
           remove_file: file["name"]
@@ -109,7 +109,7 @@ export default {
     download_file: function(filename = "download") {
       // https://thewebtier.com/snippets/download-files-with-axios/
       this.axios({
-        url: "http://localhost:5000/download_file",
+        url: this.$API_URL + "/download_file",
         method: "GET",
         responseType: "blob" // important
       }).then(response => {
@@ -129,7 +129,7 @@ export default {
     },
     change_file: function(name='test.jpg') {
       this.axios({
-        url: "http://localhost:5000/download_file",
+        url: this.$API_URL + "/download_file",
         method: "POST",
         data: { change_file: name}
       })

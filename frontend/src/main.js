@@ -18,6 +18,11 @@ Vue.use(Vuetify)
 // https://dev.to/heftyhead/lets-talk-about-an-unnecessary-but-popular-vue-plugin-1ied
 Vue.prototype.axios = axios
 
+// API server location, for deployment change IP address
+// change for deployment
+Vue.prototype.$API_URL = process.env.VUE_APP_API
+
+
 
 
 

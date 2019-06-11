@@ -98,7 +98,7 @@ export default {
     // all the methods will be replaced with REST API call later
     read_todo: function() {
       this.axios
-        .get("http://localhost:5000/todo_db")
+        .get(this.$API_URL+"/todo_db")
         .then(response => (this.todos = response.data));
     },
     update_todo: function(
@@ -115,7 +115,7 @@ export default {
       };
       // console.log(data);
       this.axios
-        .post("http://localhost:5000/todo_db", data)
+        .post(this.$API_URL+"/todo_db", data)
         .then(() => this.read_todo());
       //   add a delay to make sure the backend respond
     },
