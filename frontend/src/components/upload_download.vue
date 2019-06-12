@@ -91,6 +91,7 @@ export default {
 
     removeAllFiles: function() {
       this.$refs.myVueDropzone.removeAllFiles();
+       console.log(this.$API_URL);
     },
     upload_complete: function(file, response) {
       console.log("uploaded");
