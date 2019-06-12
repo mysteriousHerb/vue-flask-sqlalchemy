@@ -4,7 +4,7 @@ server {
 
     location /api {
         include uwsgi_params;
-        uwsgi_pass unix:/home/survey/vue-flask-sqlalchemy/backend/app.sock;
+        uwsgi_pass unix:/home/tianheng/vue-flask-sqlalchemy/backend/app.sock;
     }
 
     location / {
@@ -18,7 +18,7 @@ server {
 
     location /api {
         include uwsgi_params;
-        uwsgi_pass unix:/home/survey/vue-flask-sqlalchemy/backend/app.sock;
+        uwsgi_pass unix:/home/tianheng/vue-flask-sqlalchemy/backend/app.sock;
     }
 
     location / {
