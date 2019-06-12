@@ -2,39 +2,28 @@ server {
     listen 80;
     server_name smithtechs.co.uk www.smithtechs.co.uk;
 
-    location /test {
+    location  /api {
+        include uwsgi_params;
+        uwsgi_pass unix:/home/tianheng/vue-flask-sqlalchemy/backend/app.sock;
+        uwsgi_param SCRIPT_NAME /api;
+        uwsgi_modifier1 30;
+    }
+
+    
+    location  / {
         include uwsgi_params;
         uwsgi_pass unix:/home/tianheng/vue-flask-sqlalchemy/backend/app.sock;
     }
 
-  location /dist {
-    alias /home/tianheng/vue-flask-sqlalchemy/frontend/dist/;
-  }
-  
-    location / {
-        include uwsgi_params;
-        uwsgi_pass unix:/home/tianheng/vue-flask-sqlalchemy/backend/app.sock;
-    }
 }
-
 
 server {
     listen 80;
     server_name 165.227.139.201;
 
-    location /test {
-        include uwsgi_params;
-        uwsgi_pass unix:/home/tianheng/vue-flask-sqlalchemy/backend/app.sock;
-    }
 
   location /dist {
     alias /home/tianheng/vue-flask-sqlalchemy/frontend/dist/;
   }
-
-    location / {
-        include uwsgi_params;
-        uwsgi_pass unix:/home/tianheng/vue-flask-sqlalchemy/backend/app.sock;
-    }
-
 
 }

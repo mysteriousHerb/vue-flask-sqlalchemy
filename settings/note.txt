@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/31151116/serving-flask-app-on-subdirectory-nginx-uwsgi
+
+https://serverfault.com/questions/461946/nginx-uwsgi-flask-rewrite-directory-as-base-directory-within-app
+

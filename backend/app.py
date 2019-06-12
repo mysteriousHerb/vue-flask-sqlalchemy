@@ -203,9 +203,9 @@ class download_file(Resource):
             return 200
             
 
-api.add_resource(todo_database_access, "/todo_db")
-api.add_resource(upload_file, "/upload_file")
-api.add_resource(download_file, "/download_file")
+api.add_resource(todo_database_access, "/api/todo_db")
+api.add_resource(upload_file, "/api/upload_file")
+api.add_resource(download_file, "/api/download_file")
 
 
 if __name__ == "__main__":
