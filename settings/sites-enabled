@@ -1,0 +1,24 @@
+server {
+    listen 80;
+    server_name smithtechs.co.uk www.smithtechs.co.uk;
+location /api {
+        include proxy_params;
+        proxy_pass http://unix:/home/tianheng/vue-flask-sqlalchemy/backend/app.sock;
+    }
+location / {
+    root /home/tianheng/vue-flask-sqlalchemy/frontend/dist;
+    try_files $uri $uri/ /index.html;
+  }
+}
+server {
+    listen 80;
+    server_name 165.227.139.201;
+location /api {
+        include proxy_params;
+        proxy_pass http://unix:/home/tianheng/vue-flask-sqlalchemy/backend/app.sock;
+    }
+location / {
+    root /home/tianheng/vue-flask-sqlalchemy/frontend/dist;
+    try_files $uri $uri/ /index.html;
+  }
+}
