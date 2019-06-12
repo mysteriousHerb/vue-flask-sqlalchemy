@@ -1,10 +1,13 @@
 [Unit]
-Description=Gunicorn instance to serve api
+Description=uWSGI Python container server  
 After=network.target
+
 [Service]
 User=tianheng
 Group=www-data
-WorkingDirectory=/home/tianheng/vue-flask-sqlalchemy/backend
-ExecStart=/home/tianheng/.local/bin/pipenv run gunicorn --workers 3 --bind unix:/home/tianheng/vue-flask-sqlalchemy/backend/app.sock -m 007 wsgi:app
+WorkingDirectory=/home/tianheng/vue-flask-sqlalchemy/backend 
+Environment="PATH=/home/tianheng/.local/bin"  
+ExecStart=/home/tianheng/.local/bin/pipenv run uwsgi --ini app.ini
+
 [Install]
 WantedBy=multi-user.target
