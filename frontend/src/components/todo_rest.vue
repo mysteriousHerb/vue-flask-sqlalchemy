@@ -100,6 +100,7 @@ export default {
       this.axios
         .get(this.$API_URL+"/todo_db")
         .then(response => (this.todos = response.data));
+    console.log(this.$API_URL);
     },
     update_todo: function(
       id = -1,
