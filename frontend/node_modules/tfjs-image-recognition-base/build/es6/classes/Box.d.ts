@@ -1,0 +1,46 @@
+import { IBoundingBox } from './BoundingBox';
+import { IDimensions } from './Dimensions';
+import { Point } from './Point';
+import { IRect } from './Rect';
+export declare class Box<BoxType = any> implements IBoundingBox, IRect {
+    static isRect(rect: any): boolean;
+    static assertIsValidBox(box: any, callee: string, allowNegativeDimensions?: boolean): void;
+    private _x;
+    private _y;
+    private _width;
+    private _height;
+    constructor(_box: IBoundingBox | IRect, allowNegativeDimensions?: boolean);
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+    readonly left: number;
+    readonly top: number;
+    readonly right: number;
+    readonly bottom: number;
+    readonly area: number;
+    readonly topLeft: Point;
+    readonly topRight: Point;
+    readonly bottomLeft: Point;
+    readonly bottomRight: Point;
+    round(): Box<BoxType>;
+    floor(): Box<BoxType>;
+    toSquare(): Box<BoxType>;
+    rescale(s: IDimensions | number): Box<BoxType>;
+    pad(padX: number, padY: number): Box<BoxType>;
+    clipAtImageBorders(imgWidth: number, imgHeight: number): Box<BoxType>;
+    shift(sx: number, sy: number): Box<BoxType>;
+    padAtBorders(imageHeight: number, imageWidth: number): {
+        dy: number;
+        edy: number;
+        dx: number;
+        edx: number;
+        y: number;
+        ey: number;
+        x: number;
+        ex: number;
+        w: number;
+        h: number;
+    };
+    calibrate(region: Box): Box<any>;
+}

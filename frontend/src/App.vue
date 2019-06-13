@@ -50,7 +50,8 @@ export default {
       routes: [
         { name: "Home", address: "/", icon: "home" },
         { name: "About", address: "/about", icon: "person" },
-        { name: "Todo", address: "/todo", icon: "note" }
+        { name: "Todo", address: "/todo", icon: "note" },
+         { name: "Face", address: "/face", icon: "face" },
       ],
       current_view: "Home"
     };

@@ -1,6 +1,8 @@
 from flask import Flask, render_template, jsonify, request, send_from_directory
 from config import Config
 from flask_sqlalchemy import SQLAlchemy
+# specific blob datatype for binary
+from sqlalchemy.dialects.sqlite import BLOB
 from flask_restful import Resource, Api
 from flask_cors import CORS
 
@@ -9,8 +11,9 @@ from flask_marshmallow import Marshmallow
 
 from werkzeug.utils import secure_filename
 import os
+import time
 import shutil
-
+import hashlib
 
 # https://flaskvuejs.herokuapp.com/sqlalchemy
 app = Flask(__name__)
@@ -52,6 +55,19 @@ class FileEntrySchema(ma.ModelSchema):
     class Meta:
         model = FileEntry
 
+
+class DescriptorEntry(db.Model):
+    id = db.Column("id", db.Integer, primary_key=True)
+    user = db.Column(db.String)
+    salt1 = db.Column(BLOB)
+    descriptor_hash = db.Column(db.String)
+    descriptor_server = db.Column(BLOB)
+    descriptor_user_hash = db.Column(db.String)
+
+
+class DescriptorEntrySchema(ma.ModelSchema):
+    class Meta:
+        model = DescriptorEntry
 
 # if the database does not exist, use db.create_all()
 def initialize():
@@ -201,13 +217,66 @@ class download_file(Resource):
             shutil.copy2(filepath, os.path.join(app.config["UPLOAD_FOLDER"], 'download.jpg'))
 
             return 200
+    
+class verify_descriptor(Resource):
+    def post(self):
+        args = request.get_json()
+        if 'descriptor' in args and 'user' in args:
+            user = args['user']
+            descriptor = args['descriptor']
+            # for the hashing and database to work on the list, 
+            # we convert it to list and then encode to byteformat
+            descriptor_user =  str(descriptor[:len(descriptor)//2]).encode()
+            descriptor_server =  str(descriptor[len(descriptor)//2:]).encode()
+            descriptor =  str(descriptor).encode()
+            # DEBUG: there is an issue with lossy recovery of our holography encryption, 
+            # DEBUG: the hashed results will not match
+            # a byte format salt
+            salt1 = os.urandom(100)
+            descriptor_hash = hashlib.sha512(descriptor + salt1).hexdigest()
+            # the salt2 and descriptor_user_hash are all downloaded
+            salt2 = os.urandom(100)
+            descriptor_user_hash = hashlib.sha512(descriptor_user + salt2).hexdigest()
             
+            # need to convert pickle into byte
+            
+            descriptor_entry = DescriptorEntry(
+                                    user=user, salt1=salt1, descriptor_hash=descriptor_hash, 
+                                    descriptor_server=descriptor_server, 
+                                    descriptor_user_hash=descriptor_user_hash)
+            print(descriptor_entry)
+            db.session.add(descriptor_entry)
+            db.session.commit()
+
+
+    
+        elif  'descriptor_user' in args and 'salt2' in args:
+            # user upload the half of descriptor and salt2
+            descriptor_user = args['descriptor_user']
+            salt2 = args['salt2']
+            hash_result = hashlib.sha512(descriptor_user + salt2).hexdigest()
+            print('Download the full descriptor')
+            # directly query the database to find the matching hash to idetify user
+            descriptor_entry = DescriptorEntry.query.filter_by(descriptor_user_hash=hash_result).first()
+            if descriptor_entry:
+                user = descriptor_entry.user
+                # to recover from the byte format to list
+                descriptor_server = eval(descriptor_entry.descriptor_server.decode())
+                descriptor_user = eval(descriptor_user.decode())
+
+                # holographic recombine
+                descriptor = descriptor_server + descriptor_user
+
+            return jsonify({'user': user, 'descriptor':descriptor})
+
+
 
 api.add_resource(todo_database_access, "/api/todo_db")
 api.add_resource(upload_file, "/api/upload_file")
 api.add_resource(download_file, "/api/download_file")
+api.add_resource(verify_descriptor, "/api/verify_descriptor")
 
 
 if __name__ == "__main__":
     initialize()
-    app.run(host='0.0.0.0')
+    app.run(host='0.0.0.0', debug=True)

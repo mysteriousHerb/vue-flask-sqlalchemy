@@ -24,7 +24,7 @@
           <v-btn @click="removeAllFiles">Remove All Files</v-btn>
 
           <v-btn @click="download_file">Download file</v-btn>
-          <v-btn @click="print_url">print URL</v-btn>
+          <v-btn @click="toggle">toggle</v-btn>
         </v-flex>
       </v-layout>
       <br>
@@ -82,8 +82,13 @@ export default {
     this.read_existing_files();
   },
   methods: {
-    print_url:function(){
-      console.log(this.$API_URL)
+    toggle:function(){
+        this.axios({
+        url: this.$API_URL + "/verify_descriptor",
+        method: "POST",
+        data: { user: 'test', 
+        descriptor: [1,2,3,4,5,6] }
+      }).then(response => (this.existing_files = response.data));
     },
     read_existing_files: function() {
       this.axios({

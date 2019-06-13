@@ -68,6 +68,7 @@
             >
               <v-icon dark>remove</v-icon>
             </v-btn>
+            <v
           </v-flex>
         </v-layout>
       </div>

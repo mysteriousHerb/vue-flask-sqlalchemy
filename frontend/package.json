@@ -10,6 +10,7 @@
   "dependencies": {
     "axios": "^0.19.0",
     "core-js": "^2.6.5",
+    "face-api.js": "^0.20.0",
     "vue": "^2.6.10",
     "vue-router": "^3.0.3",
     "vue2-dropzone": "^3.5.9",
