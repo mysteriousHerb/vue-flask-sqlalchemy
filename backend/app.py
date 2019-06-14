@@ -1,11 +1,10 @@
 from flask import Flask, render_template, jsonify, request, send_from_directory
-from config import Config
-from flask_sqlalchemy import SQLAlchemy
-# specific blob datatype for binary
-from sqlalchemy.dialects.sqlite import BLOB
 from flask_restful import Resource, Api
 from flask_cors import CORS
 
+from flask_sqlalchemy import SQLAlchemy
+# specific blob datatype for binary
+from sqlalchemy.dialects.sqlite import BLOB
 # https://flask-marshmallow.readthedocs.io/en/latest/
 from flask_marshmallow import Marshmallow
 
@@ -14,6 +13,9 @@ import os
 import time
 import shutil
 import hashlib
+
+from config import Config
+
 
 # https://flaskvuejs.herokuapp.com/sqlalchemy
 app = Flask(__name__)
@@ -46,10 +48,12 @@ class TodoSchema(ma.ModelSchema):
     class Meta:
         model = Todo
 
+
 class FileEntry(db.Model):
     id = db.Column("file_id", db.Integer, primary_key=True)
     name = db.Column(db.String)
     filepath = db.Column(db.String)
+
 
 class FileEntrySchema(ma.ModelSchema):
     class Meta:
@@ -59,9 +63,9 @@ class FileEntrySchema(ma.ModelSchema):
 class DescriptorEntry(db.Model):
     id = db.Column("id", db.Integer, primary_key=True)
     user = db.Column(db.String)
-    salt1 = db.Column(BLOB)
+    salt1 = db.Column(db.String)
     descriptor_hash = db.Column(db.String)
-    descriptor_server = db.Column(BLOB)
+    descriptor_server = db.Column(db.String)
     descriptor_user_hash = db.Column(db.String)
 
 
@@ -69,13 +73,14 @@ class DescriptorEntrySchema(ma.ModelSchema):
     class Meta:
         model = DescriptorEntry
 
+
 # if the database does not exist, use db.create_all()
 def initialize():
     try:
         Todo.query.get(1)
-        FileEntry.query.get(1)        
+        FileEntry.query.get(1)
     except:
-        print('creating database..')
+        print("creating database..")
         db.create_all()
         # # put some place holder data
         # todo0 = Todo(content="buy food", done=False)
@@ -87,10 +92,10 @@ def initialize():
         # db.session.add(file_entry_0)
         # db.session.commit()
         # # delete use: db.session.delete(me)
-    
-    if not os.path.exists(app.config['UPLOAD_FOLDER']):
-        print('creating upload folder')
-        os.makedirs(app.config['UPLOAD_FOLDER'])
+
+    if not os.path.exists(app.config["UPLOAD_FOLDER"]):
+        print("creating upload folder")
+        os.makedirs(app.config["UPLOAD_FOLDER"])
 
 
 def query_database():
@@ -136,6 +141,7 @@ class todo_database_access(Resource):
 
 ALLOWED_EXTENSIONS = ["txt", "pdf", "png", "jpg", "jpeg", "gif"]
 
+
 def allowed_file(filename):
     # string.rsplit(separator, max) Specifies how many splits to do.
     if "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS:
@@ -146,7 +152,7 @@ def allowed_file(filename):
 
 class upload_file(Resource):
     def post(self):
-        file = request.files.get('file')
+        file = request.files.get("file")
         if file:
             if file.filename == "":
                 return {"message": "No file found", "status": "error"}
@@ -156,14 +162,21 @@ class upload_file(Resource):
                 filename = secure_filename(file.filename)
                 filename_no_extension = filename.rsplit(".", 1)[0]
 
-                existed_entry = FileEntry.query.filter_by(name=filename_no_extension).first()
+                existed_entry = FileEntry.query.filter_by(
+                    name=filename_no_extension
+                ).first()
                 if existed_entry is None:
-                    file_entry = FileEntry(name=filename_no_extension, filepath=os.path.join(app.config["UPLOAD_FOLDER"], filename))
+                    file_entry = FileEntry(
+                        name=filename_no_extension,
+                        filepath=os.path.join(app.config["UPLOAD_FOLDER"], filename),
+                    )
                     db.session.add(file_entry)
                 else:
                     # if the name  already exist, remove the existing file and update the db entry
                     os.remove(existed_entry.filepath)
-                    existed_entry.filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+                    existed_entry.filepath = os.path.join(
+                        app.config["UPLOAD_FOLDER"], filename
+                    )
                 db.session.commit()
 
                 file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
@@ -182,82 +195,80 @@ class upload_file(Resource):
             filename = file_upload_args["remove_file"]
             filename = secure_filename(filename)
             filename_no_extension = filename.rsplit(".", 1)[0]
-            existed_entry = FileEntry.query.filter_by(name=filename_no_extension).first()
+            existed_entry = FileEntry.query.filter_by(
+                name=filename_no_extension
+            ).first()
             db.session.delete(existed_entry)
             db.session.commit()
             try:
                 os.remove(os.path.join(app.config["UPLOAD_FOLDER"], filename))
             except FileNotFoundError:
-                print('file is already deleted')
+                print("file is already deleted")
+
 
 class download_file(Resource):
     # http://flask.pocoo.org/docs/1.0/patterns/fileuploads/
-    def get(self):
-        response =  send_from_directory(app.config["UPLOAD_FOLDER"], 'download.jpg')
-        response.headers['x-suggested-filename'] = 'download.jpg'.split('.')[0]
-        response.headers['x-suggested-filetype'] = 'download.jpg'.split('.')[1]
+    def get(self, filename):
+        response = send_from_directory(app.config["UPLOAD_FOLDER"], filename)
+        response.headers["x-suggested-filename"] = filename.split(".")[0]
+        response.headers["x-suggested-filetype"] = filename.split(".")[1]
         # https://stackoverflow.com/questions/41543951/how-to-change-downloading-name-in-flask
         # to pass the filename as header to frontend, we need to solve by CORS setting
-
         return response
-    
-    def post(self):
-        args = request.get_json()
-        if 'index_files' in args:
-            if args['index_files'] is True:
-                file_entries = FileEntry.query.all()
-                file_entries_schema = FileEntrySchema(many=True)
-                output = file_entries_schema.dump(file_entries)
-                return output
 
-        if 'change_file' in args:
-            filename_no_extension = args['change_file']
-            existed_entry = FileEntry.query.filter_by(name=filename_no_extension).first()
-            filepath = existed_entry.filepath
-            shutil.copy2(filepath, os.path.join(app.config["UPLOAD_FOLDER"], 'download.jpg'))
+class existing_files(Resource):
+    def get(self):
+        file_entries = FileEntry.query.all()
+        file_entries_schema = FileEntrySchema(many=True)
+        output = file_entries_schema.dump(file_entries)
+        output = [item['filepath'].split('\\')[-1] for item in output]
+        return output
 
-            return 200
-    
+
 class verify_descriptor(Resource):
     def post(self):
         args = request.get_json()
-        if 'descriptor' in args and 'user' in args:
-            user = args['user']
-            descriptor = args['descriptor']
-            # for the hashing and database to work on the list, 
+        if "descriptor" in args and "user" in args:
+            user = args["user"]
+            descriptor = args["descriptor"]
+            # for the hashing and database to work on the list,
             # we convert it to list and then encode to byteformat
-            descriptor_user =  str(descriptor[:len(descriptor)//2]).encode()
-            descriptor_server =  str(descriptor[len(descriptor)//2:]).encode()
-            descriptor =  str(descriptor).encode()
-            # DEBUG: there is an issue with lossy recovery of our holography encryption, 
+            descriptor_server = str(descriptor[: len(descriptor) // 2]).encode()
+            descriptor_user = str(descriptor[len(descriptor) // 2:]).encode()
+            descriptor = str(descriptor).encode()
+            # DEBUG: there is an issue with lossy recovery of our holography encryption,
             # DEBUG: the hashed results will not match
             # a byte format salt
-            salt1 = os.urandom(100)
+            salt1 = os.urandom(50)
             descriptor_hash = hashlib.sha512(descriptor + salt1).hexdigest()
             # the salt2 and descriptor_user_hash are all downloaded
-            salt2 = os.urandom(100)
+            salt2 = os.urandom(50)
             descriptor_user_hash = hashlib.sha512(descriptor_user + salt2).hexdigest()
-            
+
             # need to convert pickle into byte
-            
             descriptor_entry = DescriptorEntry(
-                                    user=user, salt1=salt1, descriptor_hash=descriptor_hash, 
-                                    descriptor_server=descriptor_server, 
-                                    descriptor_user_hash=descriptor_user_hash)
-            print(descriptor_entry)
+                user=user,
+                salt1=str(salt1),
+                descriptor_hash=str(descriptor_hash),
+                descriptor_server=str(descriptor_server),
+                descriptor_user_hash=str(descriptor_user_hash),
+            )
+
             db.session.add(descriptor_entry)
             db.session.commit()
 
+            return jsonify({"descriptor_user": str(descriptor_user), "salt2": str(salt2)})
 
-    
-        elif  'descriptor_user' in args and 'salt2' in args:
+        elif "descriptor_user" in args and "salt2" in args:
             # user upload the half of descriptor and salt2
-            descriptor_user = args['descriptor_user']
-            salt2 = args['salt2']
-            hash_result = hashlib.sha512(descriptor_user + salt2).hexdigest()
-            print('Download the full descriptor')
+            # conver the string back to bytes
+            descriptor_user = eval(args["descriptor_user"])
+            salt2 = eval(args["salt2"])
+            generated_descriptor_user_hash = hashlib.sha512(descriptor_user + salt2).hexdigest()
             # directly query the database to find the matching hash to idetify user
-            descriptor_entry = DescriptorEntry.query.filter_by(descriptor_user_hash=hash_result).first()
+            descriptor_entry = DescriptorEntry.query.filter_by(
+                descriptor_user_hash=generated_descriptor_user_hash
+            ).first()
             if descriptor_entry:
                 user = descriptor_entry.user
                 # to recover from the byte format to list
@@ -267,16 +278,17 @@ class verify_descriptor(Resource):
                 # holographic recombine
                 descriptor = descriptor_server + descriptor_user
 
-            return jsonify({'user': user, 'descriptor':descriptor})
-
+            return jsonify({"user": user, "descriptor": descriptor})
 
 
 api.add_resource(todo_database_access, "/api/todo_db")
 api.add_resource(upload_file, "/api/upload_file")
-api.add_resource(download_file, "/api/download_file")
+api.add_resource(download_file, "/api/download_file/<filename>")
+api.add_resource(existing_files, "/api/existing_files")
 api.add_resource(verify_descriptor, "/api/verify_descriptor")
 
 
 if __name__ == "__main__":
     initialize()
-    app.run(host='0.0.0.0', debug=True)
+    app.run(host="0.0.0.0", debug=True)
+

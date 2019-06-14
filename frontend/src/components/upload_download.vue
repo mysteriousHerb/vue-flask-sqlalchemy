@@ -30,16 +30,21 @@
       <br>
       <v-layout align-center justify-center>
         <v-flex xs10>
-          <v-img :src="image_location"/>
+          <!-- use :key to actively refresh this component https://michaelnthiessen.com/force-re-render -->
+          <v-img :src="image_location" :key="active_file"/>
         </v-flex>
       </v-layout>
 
       <v-layout align-center justify-center>
         <v-flex xs4>
           <v-list>
-            <v-list-tile v-for="file in existing_files" :key="file.index" @click="change_file(file.name)">
+            <v-list-tile
+              v-for="file in existing_files"
+              :key="file"
+              @click="change_file(file)"
+            >
               <v-list-tile-content>
-                <v-list-tile-title v-text="file.name"></v-list-tile-title>
+                <v-list-tile-title v-text="file"></v-list-tile-title>
               </v-list-tile-content>
             </v-list-tile>
           </v-list>
@@ -52,6 +57,8 @@
 <script>
 import vue2Dropzone from "vue2-dropzone";
 import "vue2-dropzone/dist/vue2Dropzone.min.css";
+import FileSaver from "file-saver";
+
 // import axios from "axios";
 
 export default {
@@ -74,33 +81,53 @@ export default {
         maxFiles: 4,
         dictDefaultMessage: "<i class='fa fa-cloud-upload'></i>UPLOAD ME"
       },
-      existing_files: [{ name: "", filepath: "", active: false},],
-      image_location: this.$API_URL + "/download_file",
+      existing_files: [],
+      active_file: ""
     };
+  },
+  computed: {
+    image_location: function() {
+      return this.$API_URL + "/download_file/" + this.active_file;
+    }
   },
   mounted: function() {
     this.read_existing_files();
   },
   methods: {
-    toggle:function(){
-        this.axios({
+    toggle: function() {
+      console.log(this.existing_files)
+      this.axios({
         url: this.$API_URL + "/verify_descriptor",
         method: "POST",
-        data: { user: 'test', 
-        descriptor: [1,2,3,4,5,6] }
-      }).then(response => (this.existing_files = response.data));
+        data: { user: "test", descriptor: [1, 2, 3, 4, 5, 6] }
+      }).then(function(response) {
+        var descriptor_json = {
+          descriptor_user: response.data["descriptor_user"],
+          salt2: response.data["salt2"]
+        };
+        console.log(descriptor_json);
+        // https://stackoverflow.com/questions/16329293/save-json-string-to-client-pc-using-html5-api
+        // JSON.parse() takes a JSON string and transforms it into a JavaScript object.
+        // JSON.stringify() takes a JavaScript object and transforms it into a JSON string.
+        // NOTE: Javascript object needs to be JSON (a string) to communicate
+        var descriptor_json = JSON.stringify(descriptor_json);
+        var blob = new Blob([descriptor_json], { type: "application/json" });
+        FileSaver.saveAs(blob, "key.json");
+      });
     },
     read_existing_files: function() {
-      this.axios({
-        url: this.$API_URL + "/download_file",
-        method: "POST",
-        data: { index_files: true }
-      }).then(response => (this.existing_files = response.data));
+      let vm = this;
+       this.axios({
+        url: this.$API_URL + "/existing_files",
+        method: "GET"
+      }).then(function(response) {
+        vm.existing_files = response.data;
+      });
     },
 
     removeAllFiles: function() {
       this.$refs.myVueDropzone.removeAllFiles();
-       console.log(this.$API_URL);
+      console.log(this.$API_URL);
     },
     upload_complete: function(file, response) {
       console.log("uploaded");
@@ -126,23 +153,13 @@ export default {
         // CORS headings - see backend
         var filename = response.headers["x-suggested-filename"];
         var filetype = response.headers["x-suggested-filetype"];
-        const url = window.URL.createObjectURL(new Blob([response.data]));
-        const link = document.createElement("a");
-        console.log(response);
-        link.href = url;
-        // Filename seems to have to be changed unless otherwise provided
-        // the extension can be automatically decided
-        link.setAttribute("download", filename + filetype);
-        document.body.appendChild(link);
-        link.click();
+
+        var blob = new Blob([response.data], { type: "image/png" });
+        FileSaver.saveAs(new Blob([response.data]), filename + "." + filetype);
       });
     },
-    change_file: function(name='test.jpg') {
-      this.axios({
-        url: this.$API_URL + "/download_file",
-        method: "POST",
-        data: { change_file: name}
-      })
+    change_file: function(name) {
+      this.active_file = name;
     }
   }
 };
