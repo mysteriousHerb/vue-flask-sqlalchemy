@@ -82,7 +82,7 @@ export default {
         dictDefaultMessage: "<i class='fa fa-cloud-upload'></i>UPLOAD ME"
       },
       existing_files: [],
-      active_file: ""
+      active_file: "default.jpg"
     };
   },
   computed: {
@@ -100,7 +100,7 @@ export default {
         url: this.$API_URL + "/verify_descriptor",
         method: "POST",
         data: { user: "test", descriptor: [1, 2, 3, 4, 5, 6] }
-      }).then(function(response) {
+      }).then(response => {
         var descriptor_json = {
           descriptor_user: response.data["descriptor_user"],
           salt2: response.data["salt2"]
@@ -115,14 +115,17 @@ export default {
         FileSaver.saveAs(blob, "key.json");
       });
     },
-    read_existing_files: function() {
-      let vm = this;
+    read_existing_files_right: function() {
        this.axios({
         url: this.$API_URL + "/existing_files",
         method: "GET"
-      }).then(function(response) {
-        vm.existing_files = response.data;
-      });
+      }).then(response => {this.existing_files = response.data}) 
+    },
+    read_existing_files: function() {
+       this.axios({
+        url: this.$API_URL + "/existing_files",
+        method: "GET"
+      }).then(function(response){this.existing_files = response.data}) 
     },
 
     removeAllFiles: function() {
@@ -146,7 +149,7 @@ export default {
     download_file: function(filename = "download") {
       // https://thewebtier.com/snippets/download-files-with-axios/
       this.axios({
-        url: this.$API_URL + "/download_file",
+        url: this.image_location,
         method: "GET",
         responseType: "blob" // important
       }).then(response => {
