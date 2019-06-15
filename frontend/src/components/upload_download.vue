@@ -115,17 +115,11 @@ export default {
         FileSaver.saveAs(blob, "key.json");
       });
     },
-    read_existing_files_right: function() {
-       this.axios({
-        url: this.$API_URL + "/existing_files",
-        method: "GET"
-      }).then(response => {this.existing_files = response.data}) 
-    },
     read_existing_files: function() {
        this.axios({
         url: this.$API_URL + "/existing_files",
         method: "GET"
-      }).then(function(response){this.existing_files = response.data}) 
+      }).then(response => {this.existing_files = response.data}) 
     },
 
     removeAllFiles: function() {

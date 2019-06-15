@@ -103,7 +103,7 @@ def query_database():
     todos_schema = TodoSchema(many=True)
     # convert the sqlresult into python dictionary that can be jsonify
     output = todos_schema.dump(todos)
-    return output
+    return output.data
 
 
 def modify_todo(id=-1, content="", done=False, delete=False):
@@ -221,7 +221,9 @@ class existing_files(Resource):
         file_entries = FileEntry.query.all()
         file_entries_schema = FileEntrySchema(many=True)
         output = file_entries_schema.dump(file_entries)
-        output = [item['filepath'].split('\\')[-1] for item in output]
+        print(output)
+        # os.path to return tail/filename to be system agnostic
+        output = [os.path.basename(item['filepath']) for item in output.data]
         return output
 
 
