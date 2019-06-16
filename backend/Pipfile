@@ -14,6 +14,8 @@ flask-restful = "*"
 flask-marshmallow = "*"
 marshmallow-sqlalchemy = "*"
 requests = "*"
+dlib = {path = "./dlib-19.17.0-cp36-cp36m-win_amd64.whl"}
+face-recognition = "*"
 
 [pipenv]
 allow_prereleases = true

@@ -9,7 +9,7 @@
             @vdropzone-success="upload_complete"
             @vdropzone-removed-file="remove_file"
             :options="dropzoneOptions"
-            :useCustomSlot="false"
+            :useCustomSlot="true"
           >
             <div class="dropzone-custom-content">
               <h3 class="dropzone-custom-title">Drag and drop to upload content!</h3>
@@ -126,11 +126,11 @@ export default {
       this.$refs.myVueDropzone.removeAllFiles();
       console.log(this.$API_URL);
     },
-    upload_complete: function(file, response) {
+    upload_complete: function(file) {
       console.log("uploaded");
       console.log(file["name"]);
     },
-    remove_file: function(file, error, xhr) {
+    remove_file: function(file) {
       // https://alligator.io/vuejs/rest-api-axios/
       this.axios({
         url: this.$API_URL + "/upload_file",
@@ -140,7 +140,7 @@ export default {
         }
       }).then(response => {});
     },
-    download_file: function(filename = "download") {
+    download_file: function() {
       // https://thewebtier.com/snippets/download-files-with-axios/
       this.axios({
         url: this.image_location,
@@ -151,7 +151,7 @@ export default {
         var filename = response.headers["x-suggested-filename"];
         var filetype = response.headers["x-suggested-filetype"];
 
-        var blob = new Blob([response.data], { type: "image/png" });
+        // var blob = new Blob([response.data], { type: "image/png" });
         FileSaver.saveAs(new Blob([response.data]), filename + "." + filetype);
       });
     },

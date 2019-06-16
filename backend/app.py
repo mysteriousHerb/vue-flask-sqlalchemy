@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, request, send_from_directory
+from flask import Flask, render_template, jsonify, request, send_from_directory, session
 from flask_restful import Resource, Api
 from flask_cors import CORS
 
@@ -13,8 +13,10 @@ import os
 import time
 import shutil
 import hashlib
+import pickle
 
 from config import Config
+from  face_recognition_helper import  GenerateDescriptorThread, MatchKnownDescriptor
 
 
 # https://flaskvuejs.herokuapp.com/sqlalchemy
@@ -97,6 +99,11 @@ def initialize():
         print("creating upload folder")
         os.makedirs(app.config["UPLOAD_FOLDER"])
 
+    # always clear the folder at boot up
+    if not os.path.exists(app.config["TEMP_FOLDER"]):
+        print("creating temp folder")
+        os.makedirs(app.config["TEMP_FOLDER"])
+
 
 def query_database():
     todos = Todo.query.all()
@@ -139,7 +146,7 @@ class todo_database_access(Resource):
         return jsonify(status="modify success")
 
 
-ALLOWED_EXTENSIONS = ["txt", "pdf", "png", "jpg", "jpeg", "gif"]
+ALLOWED_EXTENSIONS = ["png", "jpg", "jpeg"]
 
 
 def allowed_file(filename):
@@ -153,6 +160,7 @@ def allowed_file(filename):
 class upload_file(Resource):
     def post(self):
         file = request.files.get("file")
+        print(file)
         if file:
             if file.filename == "":
                 return {"message": "No file found", "status": "error"}
@@ -189,8 +197,6 @@ class upload_file(Resource):
 
         # same api can accept other arguments for file system modification, using json to communicate
         file_upload_args = request.get_json()
-        print(file_upload_args)
-
         if "remove_file" in file_upload_args:
             filename = file_upload_args["remove_file"]
             filename = secure_filename(filename)
@@ -225,6 +231,48 @@ class existing_files(Resource):
         # os.path to return tail/filename to be system agnostic
         output = [os.path.basename(item['filepath']) for item in output.data]
         return output
+
+class generate_descriptor(Resource):
+    def post(self):
+        # receive server images and save it to a temp folder
+        # and generate encodings from it
+        file = request.files.get("file")
+        if file:
+            if 'unknown_face' not in file.filename:
+                return {"message": "No file found", "status": "error"}
+            else:
+                # http://flask.pocoo.org/docs/0.12/quickstart/#sessions
+                file_count = file.filename.replace('unknown_face_', '').replace('.jpg','').replace('.jpeg','')
+                print(file_count)
+                if file_count == '1':
+                    # clean the temp folder when the first image is sent
+                    for root, dirs, filenames in os.walk(app.config["TEMP_FOLDER"]):
+                        for filename in filenames:
+                            os.remove(os.path.join(root, filename))
+
+                image_path = os.path.join(app.config["TEMP_FOLDER"], file_count+'.jpg')
+                file.save(image_path)
+
+                # use a thread to do the image processing, so we don't block the app
+                # thread will also have no return value, so the file saving etc is handled by the original function
+                GenerateDescriptorThread(image_path)
+
+                return {
+                    "status": "success",
+                }
+
+class match_known_descriptor(Resource):
+    def post(self):
+        args = request.get_json()
+        if 'user' in args:
+            filename = args['user'] + '.smith'
+            with open(os.path.join(app.config["KNOWN_DESCRIPTORS_FOLDER"], filename), "rb") as file:
+                known_descriptor = pickle.load(file)
+            
+            match_result = MatchKnownDescriptor(known_descriptor, app.config["TEMP_FOLDER"])
+
+            return jsonify({'user': args['user'], 'match': match_result})
+
 
 
 class verify_descriptor(Resource):
@@ -288,6 +336,9 @@ api.add_resource(upload_file, "/api/upload_file")
 api.add_resource(download_file, "/api/download_file/<filename>")
 api.add_resource(existing_files, "/api/existing_files")
 api.add_resource(verify_descriptor, "/api/verify_descriptor")
+api.add_resource(generate_descriptor, "/api/generate_unknown_descriptor")
+api.add_resource(match_known_descriptor, "/api/match_known_descriptor")
+
 
 
 if __name__ == "__main__":

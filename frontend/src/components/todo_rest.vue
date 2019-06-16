@@ -4,7 +4,10 @@
       <v-layout align-center justify-center>
         <v-flex>
           <v-btn large dark color="green" @click="read_todo()">
-            <v-icon dark>refresh</v-icon>Fetch database
+            <v-icon dark>
+              refresh
+              <v-icon>{{route.icon}}</v-icon>
+            </v-icon>Fetch database
           </v-btn>
         </v-flex>
         <v-progress-circular :value="progress"></v-progress-circular>
@@ -68,7 +71,6 @@
             >
               <v-icon dark>remove</v-icon>
             </v-btn>
-            <v
           </v-flex>
         </v-layout>
       </div>
@@ -99,9 +101,8 @@ export default {
     // all the methods will be replaced with REST API call later
     read_todo: function() {
       this.axios
-        .get(this.$API_URL+"/todo_db")
+        .get(this.$API_URL + "/todo_db")
         .then(response => (this.todos = response.data));
-    console.log(this.$API_URL);
     },
     update_todo: function(
       id = -1,
@@ -117,13 +118,10 @@ export default {
       };
       // console.log(data);
       this.axios
-        .post(this.$API_URL+"/todo_db", data)
+        .post(this.$API_URL + "/todo_db", data)
         .then(() => this.read_todo());
       //   add a delay to make sure the backend respond
     },
-    print: function(data) {
-      console.log(data);
-    }
   }
 };
 </script>
