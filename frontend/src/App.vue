@@ -48,12 +48,12 @@ export default {
     return {
       drawer: false,
       routes: [
-        { name: "Home", address: "/", icon: "home" },
-        { name: "About", address: "/about", icon: "person" },
-        { name: "Todo", address: "/todo", icon: "note" },
+        // { name: "Home", address: "/", icon: "home" },
+        // { name: "About", address: "/about", icon: "person" },
+        // { name: "Todo", address: "/todo", icon: "note" },
          { name: "Face", address: "/face", icon: "face" },
       ],
-      current_view: "Home"
+      current_view: "Face"
     };
   },
   mounted: function() {

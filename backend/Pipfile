@@ -5,6 +5,8 @@ verify_ssl = true
 
 [dev-packages]
 black = "*"
+waitress = "*"
+v = {editable = true,version = "*"}
 
 [packages]
 flask = "*"

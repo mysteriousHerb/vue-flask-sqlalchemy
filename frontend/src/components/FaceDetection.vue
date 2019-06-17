@@ -14,10 +14,10 @@
       </v-layout>
     </v-container>
     <v-container grid-list-md text-xs-center fluid>
-      <v-layout justify-center v-if="current_instruction.command.length != 0">
+      <v-layout justify-center v-if="current_instruction.command.length != 0" class="display-2">
         <label>
           Instruction: {{current_instruction.command}}
-          <v-fa-icon :name="current_instruction.icon"/>
+          <v-fa-icon :name="current_instruction.icon" scale='3'/>
         </label>
       </v-layout>
       <v-layout justify-center>
@@ -46,15 +46,8 @@
           :height="display_size.height"
         ></canvas>
       </v-layout>
-<v-layout align-center justify-center>
-  <v-flex xs4>
-        <v-text-field v-model="claimed_user" label="Who do you claim to be??" placeholder="Smith"/> 
-  </v-flex>
-</v-layout>
       <v-layout align-center justify-center>
-        <v-btn @click="download_face_descriptor">download vector</v-btn>
-        <v-btn @click="capture_image">Capture a frame</v-btn>
-        <v-btn @click="match_known_descriptor">Match!</v-btn>
+        <v-flex xs4></v-flex>
       </v-layout>
     </v-container>
   </div>
@@ -86,8 +79,7 @@ export default {
       capture_file_count: 0,
       detected: false,
       resizedDetections: [],
-      confirmed_user:'',
-      claimed_user:'',
+      confirmed_user: "",
       refresh_time: 50,
       // determine sensitivity for left and right face, higher = more turning needed
       left_right_turning_ratio: 2,
@@ -143,7 +135,7 @@ export default {
       if (this.instructions.length == 0) {
         console.log("you are a human!");
         this.current_instruction.command = "";
-        this.match_known_descriptor()
+        this.match_known_descriptor();
       } else {
         shuffleArray(this.instructions);
         this.current_instruction = this.instructions[0];
@@ -157,19 +149,11 @@ export default {
       var neutral_u_d_pose = result.up_down_status == "neutral";
       var neutral_mouth = result.mouth == "neutral";
 
-      if (
-        test == "Turn Left!" &&
-        result.left_right_status == "left" &&
-        neutral_u_d_pose
-      ) {
-        this.capture_image()
+      if (test == "Turn Left!" && result.left_right_status == "left") {
+        this.generate_face_descriptor();
         return true;
-      } else if (
-        test == "Turn Right!" &&
-        result.left_right_status == "right" &&
-        neutral_u_d_pose
-      ) {
-        this.capture_image()
+      } else if (test == "Turn Right!" && result.left_right_status == "right") {
+        this.generate_face_descriptor();
         return true;
       } else if (
         test == "Look Up!" &&
@@ -177,7 +161,7 @@ export default {
         neutral_l_r_pose &&
         neutral_mouth
       ) {
-                this.capture_image()
+        this.generate_face_descriptor();
         return true;
       } else if (
         test == "Look Down!" &&
@@ -185,7 +169,7 @@ export default {
         neutral_l_r_pose &&
         neutral_mouth
       ) {
-                this.capture_image()
+        this.generate_face_descriptor();
         return true;
       } else if (
         test == "Smile!" &&
@@ -193,14 +177,14 @@ export default {
         neutral_l_r_pose &&
         neutral_u_d_pose
       ) {
-                this.capture_image()
+        this.generate_face_descriptor();
         return true;
       } else if (
         test == "Open mouth!" &&
         result.mouth == "open" &&
         neutral_l_r_pose
       ) {
-                this.capture_image()
+        this.generate_face_descriptor();
         return true;
       }
       // } else if (
@@ -230,31 +214,31 @@ export default {
         err => console.error(err)
       );
     },
-    capture_image: function() {
+    generate_face_descriptor: function() {
       // https://x-team.com/blog/webcam-capture-vue/
       let self = this;
       if (self.detections) {
         // keep track how many images we have captured
         self.capture_file_count += 1;
-      // console.log(this.detections);
-      console.log(self.capture_file_count)
+        // console.log(this.detections);
+        console.log(self.capture_file_count);
         const canvas = self.$refs.canvas_capture;
         var context = canvas.getContext("2d");
         context.clearRect(0, 0, canvas.width, canvas.height);
         var box = self.detections.detection.box;
         // giving some padding so we dont crop too much which gives problem to backend
-        var pad = 0.2*box.width;
+        var pad = 0.2 * box.width;
         // drawImage from the video stream, with cropping
         context.drawImage(
           self.$refs.video,
-          box.x -pad,
-          box.y -pad,
-          box.width + pad*2,
-          box.height + pad*2,
-          box.x -pad,
-          box.y -pad,
-          box.width + pad*2,
-          box.height + pad*2,
+          box.x - pad,
+          box.y - pad,
+          box.width + pad * 2,
+          box.height + pad * 2,
+          box.x - pad,
+          box.y - pad,
+          box.width + pad * 2,
+          box.height + pad * 2
         );
 
         // Saving canvas to local drive is easy: https://github.com/eligrey/FileSaver.js/
@@ -279,23 +263,17 @@ export default {
             data: formData
           });
         });
-        // start to match when there are more than 3 images
-        if (self.capture_file_count > 2){
-          this.match_known_descriptor()
-        }
-
       }
     },
-    match_known_descriptor: function(){
-          this.axios({
-            url: this.$API_URL + "/match_known_descriptor",
-            method: "POST",
-            data: {user: this.claimed_user}
-          }).then(response => {
-            if (response.data.match){
-              this.confirmed_user = response.data.user
-            }
-          });
+    match_known_descriptor: function() {
+      this.axios({
+        url: this.$API_URL + "/match_known_descriptor",
+        method: "POST"
+      }).then(response => {
+        if (response.data.match) {
+          this.confirmed_user = response.data.user;
+        }
+      });
     },
     show_capture: function() {
       console.log(this.temp_detections);
@@ -344,13 +322,15 @@ export default {
             "mouth: " + self.liveness_detection_status.mouth,
             "eyebrow: " + self.liveness_detection_status.eyebrow
           ];
-          var message = "Hello"
+          var message = "Hello";
           // only append the username after liveness test
-          if (self.instructions.length == 0 && self.confirmed_user != '') {
-            message = "Hello: " + self.confirmed_user + '!'
-          }
-          else if (self.instructions.length == 0 && self.confirmed_user == ''){
-message = "Hello: Stranger! Maybe you are not who you claim to be" 
+          if (self.instructions.length == 0 && self.confirmed_user != "") {
+            message = "Hello: " + self.confirmed_user + "!";
+          } else if (
+            self.instructions.length == 0 &&
+            self.confirmed_user == ""
+          ) {
+            message = "Hello: Stranger! Maybe you are not who you claim to be";
           }
 
           self.annotation({

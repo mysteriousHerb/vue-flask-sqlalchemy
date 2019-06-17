@@ -38,11 +38,7 @@
       <v-layout align-center justify-center>
         <v-flex xs4>
           <v-list>
-            <v-list-tile
-              v-for="file in existing_files"
-              :key="file"
-              @click="change_file(file)"
-            >
+            <v-list-tile v-for="file in existing_files" :key="file" @click="change_file(file)">
               <v-list-tile-content>
                 <v-list-tile-title v-text="file"></v-list-tile-title>
               </v-list-tile-content>
@@ -95,7 +91,7 @@ export default {
   },
   methods: {
     toggle: function() {
-      console.log(this.existing_files)
+      console.log(this.existing_files);
       this.axios({
         url: this.$API_URL + "/verify_descriptor",
         method: "POST",
@@ -116,10 +112,12 @@ export default {
       });
     },
     read_existing_files: function() {
-       this.axios({
+      this.axios({
         url: this.$API_URL + "/existing_files",
         method: "GET"
-      }).then(response => {this.existing_files = response.data}) 
+      }).then(response => {
+        this.existing_files = response.data;
+      });
     },
 
     removeAllFiles: function() {

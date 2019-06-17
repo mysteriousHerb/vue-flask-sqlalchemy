@@ -100,9 +100,9 @@ def initialize():
         os.makedirs(app.config["UPLOAD_FOLDER"])
 
     # always clear the folder at boot up
-    if not os.path.exists(app.config["TEMP_FOLDER"]):
+    if not os.path.exists(app.config["TEMP_IMG_FOLDER"]):
         print("creating temp folder")
-        os.makedirs(app.config["TEMP_FOLDER"])
+        os.makedirs(app.config["TEMP_IMG_FOLDER"])
 
 
 def query_database():
@@ -242,15 +242,10 @@ class generate_descriptor(Resource):
                 return {"message": "No file found", "status": "error"}
             else:
                 # http://flask.pocoo.org/docs/0.12/quickstart/#sessions
-                file_count = file.filename.replace('unknown_face_', '').replace('.jpg','').replace('.jpeg','')
-                print(file_count)
-                if file_count == '1':
-                    # clean the temp folder when the first image is sent
-                    for root, dirs, filenames in os.walk(app.config["TEMP_FOLDER"]):
-                        for filename in filenames:
-                            os.remove(os.path.join(root, filename))
+                uploaded_filename = secure_filename(file.filename)
+                file_count = uploaded_filename.replace('unknown_face_', '').replace('.jpg','').replace('.jpeg','')
 
-                image_path = os.path.join(app.config["TEMP_FOLDER"], file_count+'.jpg')
+                image_path = os.path.join(app.config["TEMP_IMG_FOLDER"], file_count+'.jpg')
                 file.save(image_path)
 
                 # use a thread to do the image processing, so we don't block the app
@@ -261,17 +256,70 @@ class generate_descriptor(Resource):
                     "status": "success",
                 }
 
-class match_known_descriptor(Resource):
+class upload_descriptor(Resource):
+    def post(self):
+        file = request.files.get("file")
+        if '.smith' not in file.filename:
+            return {"message": "No file found", "status": "error"}
+        else:
+            # http://flask.pocoo.org/docs/0.12/quickstart/#sessions
+            uploaded_filename = secure_filename(file.filename)
+            user_name = uploaded_filename.replace('.smith', '')
+
+            descriptor_path = os.path.join(app.config["DESCRIPTORS_FOLDER"], user_name + '.smith')
+            file.save(descriptor_path)
+
+            return {
+                    "filename": uploaded_filename,
+                    "message": "file uploaded",
+                    "status": "success",
+                }
+        
+        # user can also delete and reupload the file
+        file_upload_args = request.get_json()
+        if "remove_file" in file_upload_args:
+            uploaded_filename = file_upload_args["remove_file"]
+            uploaded_filename = secure_filename(uploaded_filename)
+            try:
+                os.remove(os.path.join(app.config["UPLOAD_FOLDER"], uploaded_filename))
+            except FileNotFoundError:
+                print("file is already deleted")
+            
+            return {
+                "status": "success",
+            }
+
+
+class initialize_folders(Resource):
+    # when query to this address, clean the temp folders
     def post(self):
         args = request.get_json()
-        if 'user' in args:
-            filename = args['user'] + '.smith'
-            with open(os.path.join(app.config["KNOWN_DESCRIPTORS_FOLDER"], filename), "rb") as file:
-                known_descriptor = pickle.load(file)
-            
-            match_result = MatchKnownDescriptor(known_descriptor, app.config["TEMP_FOLDER"])
+        if 'initialize_folders' in args:
+            if args['initialize_folders'] is True:
+                print('initializing folders')
+                # clean the temp folder when the first image is sent
+                for root, dirs, filenames in os.walk(app.config["DESCRIPTORS_FOLDER"]):
+                    for filename in filenames:
+                        os.remove(os.path.join(root, filename))
 
-            return jsonify({'user': args['user'], 'match': match_result})
+                # clean the temp folder when the first image is sent
+                for root, dirs, filenames in os.walk(app.config["TEMP_IMG_FOLDER"]):
+                    for filename in filenames:
+                        os.remove(os.path.join(root, filename))
+
+
+class match_known_descriptor(Resource):
+    def post(self):
+        # there should be only one file
+        filenames = os.listdir(app.config['DESCRIPTORS_FOLDER'])
+        with open(os.path.join(app.config["DESCRIPTORS_FOLDER"], filenames[0]), "rb") as file:
+            known_descriptor = pickle.load(file)
+
+        user_name = filenames[0].replace('.smith','')
+        match_result = MatchKnownDescriptor(known_descriptor, app.config["TEMP_IMG_FOLDER"])
+        
+        print('user_name: {}'.format(match_result))
+        return jsonify({'user': user_name, 'match': match_result})
 
 
 
@@ -337,7 +385,9 @@ api.add_resource(download_file, "/api/download_file/<filename>")
 api.add_resource(existing_files, "/api/existing_files")
 api.add_resource(verify_descriptor, "/api/verify_descriptor")
 api.add_resource(generate_descriptor, "/api/generate_unknown_descriptor")
+api.add_resource(upload_descriptor, '/api/upload_descriptor')
 api.add_resource(match_known_descriptor, "/api/match_known_descriptor")
+api.add_resource(initialize_folders, '/api/initialize_folders')
 
 
 
