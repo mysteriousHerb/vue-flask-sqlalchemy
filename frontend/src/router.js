@@ -30,11 +30,27 @@ export default new Router({
     },
     {
       path: '/face',
-      name: 'Face',
+      name: 'FaceRecognition',
       // route level code-splitting
       // this generates a separate chunk (about.[hash].js) for this route
       // which is lazy-loaded when the route is visited.
-      component: () => import(/* webpackChunkName: "about" */ './views/face.vue')
+      component: () => import(/* webpackChunkName: "about" */ './views/FaceRecognition.vue')
+    },
+    {
+      path: '/key',
+      name: 'InsertKey',
+      // route level code-splitting
+      // this generates a separate chunk (about.[hash].js) for this route
+      // which is lazy-loaded when the route is visited.
+      component: () => import(/* webpackChunkName: "about" */ './views/InsertKey.vue')
+    },
+    {
+      path: '/gen_key',
+      name: 'GenSmithKey',
+      // route level code-splitting
+      // this generates a separate chunk (about.[hash].js) for this route
+      // which is lazy-loaded when the route is visited.
+      component: () => import(/* webpackC hunkName: "about" */ './views/GenSmithKey.vue')
     },
   ]
 })

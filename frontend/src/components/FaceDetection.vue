@@ -17,7 +17,7 @@
       <v-layout justify-center v-if="current_instruction.command.length != 0" class="display-2">
         <label>
           Instruction: {{current_instruction.command}}
-          <v-fa-icon :name="current_instruction.icon" scale='3'/>
+          <v-fa-icon :name="current_instruction.icon" scale="3"/>
         </label>
       </v-layout>
       <v-layout justify-center>
@@ -26,7 +26,7 @@
           ref="video"
           :width="display_size.width"
           :height="display_size.height"
-          style="position: absolute;"
+          v-if="true"
           autoplay
           @play="detect_and_draw_faces"
         ></video>
@@ -36,15 +36,15 @@
           ref="canvas_flip"
           :width="display_size.width"
           :height="display_size.height"
-        ></canvas>
-        <canvas id="canvas" ref="canvas" :width="display_size.width" :height="display_size.height"></canvas>
+        />
+        <canvas id="canvas" ref="canvas" :width="display_size.width" :height="display_size.height"/>
         <!-- third canvas just for image capturing -->
         <canvas
           id="canvas_capture"
           ref="canvas_capture"
           :width="display_size.width"
           :height="display_size.height"
-        ></canvas>
+        />
       </v-layout>
       <v-layout align-center justify-center>
         <v-flex xs4></v-flex>
@@ -118,7 +118,7 @@ export default {
     }
   },
   mounted: function() {
-    this.load_models();
+    this.load_faceapi_models();
     this.start_video();
     this.generate_liveness_test();
   },
@@ -197,7 +197,7 @@ export default {
       // }
     },
 
-    load_models: function() {
+    load_faceapi_models: function() {
       // save the models to the public/models
       // faceapi.nets.ssdMobilenetv1.loadFromUri("/models"),
       Promise.all([
@@ -252,6 +252,7 @@ export default {
           // upload Blob as a form to the flask backend and generate descriptors
           // https://github.com/pagekit/vue-resource/blob/master/docs/recipes.md
           let formData = new FormData();
+          // formData.append(name, value, filename);
           formData.append(
             "file",
             blob,
@@ -535,11 +536,11 @@ export default {
 };
 </script>
 
-<style scope>
+<style scoped>
 @import url("https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css");
 
 #video {
-  /* position: absolute; */
+  position: absolute;
   /* flip the image so it is more natural */
   transform: scaleX(-1);
 }

@@ -1,8 +1,8 @@
 <template>
   <div>
-    <v-container grid-list-md text-xs-center fluid>
-      <v-layout align-center justify-center>
-        <v-flex xs12>
+    <v-container fluid>
+      <v-layout align-center justify-center row fill-height>
+        <v-flex xs8>
           <vueDropzone
             ref="myVueDropzone"
             id="myVueDropzone"
@@ -17,9 +17,6 @@
             </div>
           </vueDropzone>
         </v-flex>
-      </v-layout>
-      <v-layout>
-        <v-flex></v-flex>
       </v-layout>
     </v-container>
   </div>
@@ -50,20 +47,32 @@ export default {
         thumbnailWidth: 150,
         maxFilesize: 0.5,
         maxFiles: 1
-      },
-      existing_files: [],
-      active_file: "default.jpg"
+      }
     };
   },
-  computed: {},
-  mounted: function() {},
+  computed: {
+
+  },
+  mounted: function() {
+      // this.initialize_folders()
+  },
   methods: {
-    upload_complete: function(file) {
+    upload_complete: function(file, response) {
       console.log("uploaded");
-      console.log(file["name"]);
+      console.log(response);
+      // jump to the face recognition route
+
+      if (response.message == "key uploaded successfully") {
+        console.log("ready");
+        this.$router.push({ name: 'FaceRecognition' });
+
+      }
     },
     remove_file: function(file) {
       // https://alligator.io/vuejs/rest-api-axios/
+      // https://github.com/rowanwins/vue-dropzone/issues/85
+      if (this.$refs.myVueDropzone.dropzone.disabled !== true){
+      console.log('remove file')
       this.axios({
         url: this.$API_URL + "/upload_descriptor",
         method: "POST",
@@ -71,8 +80,17 @@ export default {
           remove_file: file["name"]
         }
       }).then(response => {});
-    }
-  }
+      }
+    },
+      initialize_folders: function() {
+    this.axios({
+      url: this.$API_URL + "/initialize_folders",
+      method: "POST",
+      data: { initialize_folders: true }
+    });
+  },
+  },
+
 };
 </script>
 
@@ -80,7 +98,7 @@ export default {
 @import url("https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css");
 
 .dropzone-custom-title {
-  margin-top: 0;
+  /* margin-top: 0; */
   color: #00b782;
 }
 

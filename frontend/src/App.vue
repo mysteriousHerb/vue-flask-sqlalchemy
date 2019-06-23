@@ -26,16 +26,20 @@
 
       <v-content>
         <v-container>
+          <!--this doesnt really have a view component -->
+          <GenSessionID/>
           <router-view/>
         </v-container>
       </v-content>
 
       <v-bottom-nav :active.sync="current_view" :value="true" absolute color="transparent">
-        <div v-for="route in routes" :key="route.id">
-          <v-btn color="teal" flat :value="route.name" @click="change_view(route.name)">
-            <span>{{route.name}}</span>
-            <v-icon>{{route.icon}}</v-icon>
-          </v-btn>
+        <div v-for="route in EnabledRoutes" :key="route.name" class="display-2">
+          <div v-if="route.enabled">
+            <v-btn color="teal" flat :value="route.name" @click="change_view(route.name)">
+              <span>{{route.name}}</span>
+              <v-fa-icon :name="route.icon" scale="2"/>
+            </v-btn>
+          </div>
         </div>
       </v-bottom-nav>
     </v-app>
@@ -43,18 +47,44 @@
 </template>
 
 <script>
+import Icon from "vue-awesome/components/Icon";
+import GenSessionID from "@/components/GenSessionID.vue";
+
 export default {
+  components: {
+    "v-fa-icon": Icon,
+    GenSessionID
+  },
   data: function() {
     return {
       drawer: false,
       routes: [
-        // { name: "Home", address: "/", icon: "home" },
-        // { name: "About", address: "/about", icon: "person" },
-        // { name: "Todo", address: "/todo", icon: "note" },
-         { name: "Face", address: "/face", icon: "face" },
+        { name: "Home", address: "/", icon: "home", enabled: false },
+        { name: "About", address: "/about", icon: "search", enabled: false },
+        { name: "Todo", address: "/todo", icon: "edit", enabled: false },
+        { name: "InsertKey", address: "/key", icon: "key", enabled: true },
+        {
+          name: "FaceRecognition",
+          address: "/face",
+          icon: "smile",
+          enabled: false
+        },
+        {
+          name: "GenSmithKey",
+          address: "/gen_key",
+          icon: "save",
+          enabled: true
+        }
       ],
-      current_view: "Face"
+      current_view: "InsertKey"
     };
+  },
+  computed: {
+    EnabledRoutes: function() {
+      return this.routes.filter(function(route) {
+        return route.enabled;
+      });
+    }
   },
   mounted: function() {
     this.change_view(this.current_view);

@@ -14,9 +14,11 @@ import time
 import shutil
 import hashlib
 import pickle
+import json
 
 from config import Config
-from  face_recognition_helper import  GenerateDescriptorThread, MatchKnownDescriptor
+from  face_recognition_helper import  FaceReconHelperClassBuilder
+from hashing_helper import *
 
 
 # https://flaskvuejs.herokuapp.com/sqlalchemy
@@ -64,12 +66,11 @@ class FileEntrySchema(ma.ModelSchema):
 
 class DescriptorEntry(db.Model):
     id = db.Column("id", db.Integer, primary_key=True)
-    user = db.Column(db.String)
+    user_name = db.Column(db.String)
     salt1 = db.Column(db.String)
     descriptor_hash = db.Column(db.String)
-    descriptor_server = db.Column(db.String)
-    descriptor_user_hash = db.Column(db.String)
-
+    user_descriptor_hash = db.Column(db.String)
+    server_descriptor = db.Column(db.String)
 
 class DescriptorEntrySchema(ma.ModelSchema):
     class Meta:
@@ -232,7 +233,28 @@ class existing_files(Resource):
         output = [os.path.basename(item['filepath']) for item in output.data]
         return output
 
+# ----------------------------- Face recognition related codes ----------------------------------------
+class initialise_session(Resource):
+    def post(self):
+        # assuming vue will take care of the random_id for each session, 
+        # we can store everything in the pickle file
+        args = request.get_json()
+        # NOTE: important parameters
+        session['random_id'] = args['random_id']
+        folder = os.path.join(app.config["TEMP_FOLDER"], session['random_id'])
+        os.mkdir(folder)
+        json_path = os.path.join(folder, 'data.json')
+        
+
+class clean_up_session(Resource):
+    ''' called before vue.js closes to remove the session folder and data '''
+    def post(self):
+        args = request.get_json()
+        folder = os.path.join(app.config["TEMP_FOLDER"], args['random_id'])
+        shutil.rmtree(folder)
+
 class generate_descriptor(Resource):
+    ''' upload the photo and generate unknown_descriptor'''
     def post(self):
         # receive server images and save it to a temp folder
         # and generate encodings from it
@@ -242,152 +264,136 @@ class generate_descriptor(Resource):
                 return {"message": "No file found", "status": "error"}
             else:
                 # http://flask.pocoo.org/docs/0.12/quickstart/#sessions
-                uploaded_filename = secure_filename(file.filename)
-                file_count = uploaded_filename.replace('unknown_face_', '').replace('.jpg','').replace('.jpeg','')
-
-                image_path = os.path.join(app.config["TEMP_IMG_FOLDER"], file_count+'.jpg')
+                filename = secure_filename(file.filename)
+                
+                folder = os.path.join(app.config["TEMP"], session['random_id'])
+                image_path = os.path.join(folder, filename)
                 file.save(image_path)
 
                 # use a thread to do the image processing, so we don't block the app
                 # thread will also have no return value, so the file saving etc is handled by the original function
-                GenerateDescriptorThread(image_path)
+                json_path = os.path.join(folder, 'data.json')
+                FaceReconHelper = FaceReconHelperClassBuilder(json_path)
+                FaceReconHelper.GenerateDescriptorThread(image_path, folder, unknown=True)
 
                 return {
                     "status": "success",
                 }
 
-class upload_descriptor(Resource):
+class upload_smith_key(Resource):
+    ''' upload the key contains user_descriptor and salt2 '''
     def post(self):
         file = request.files.get("file")
+        args = request.get_json()
         if '.smith' not in file.filename:
-            return {"message": "No file found", "status": "error"}
+            return {"message": "No the right file", "status": "error"}
         else:
-            # http://flask.pocoo.org/docs/0.12/quickstart/#sessions
-            uploaded_filename = secure_filename(file.filename)
-            user_name = uploaded_filename.replace('.smith', '')
+            # the .smith file contains the key info: user_descriptor and the salt2
+            user_descriptor, salt2 = read_smith_file(file)
 
-            descriptor_path = os.path.join(app.config["DESCRIPTORS_FOLDER"], user_name + '.smith')
-            file.save(descriptor_path)
-
-            return {
-                    "filename": uploaded_filename,
-                    "message": "file uploaded",
-                    "status": "success",
-                }
-        
-        # user can also delete and reupload the file
-        file_upload_args = request.get_json()
-        if "remove_file" in file_upload_args:
-            uploaded_filename = file_upload_args["remove_file"]
-            uploaded_filename = secure_filename(uploaded_filename)
-            try:
-                os.remove(os.path.join(app.config["UPLOAD_FOLDER"], uploaded_filename))
-            except FileNotFoundError:
-                print("file is already deleted")
-            
-            return {
-                "status": "success",
-            }
-
-
-class initialize_folders(Resource):
-    # when query to this address, clean the temp folders
-    def post(self):
-        args = request.get_json()
-        if 'initialize_folders' in args:
-            if args['initialize_folders'] is True:
-                print('initializing folders')
-                # clean the temp folder when the first image is sent
-                for root, dirs, filenames in os.walk(app.config["DESCRIPTORS_FOLDER"]):
-                    for filename in filenames:
-                        os.remove(os.path.join(root, filename))
-
-                # clean the temp folder when the first image is sent
-                for root, dirs, filenames in os.walk(app.config["TEMP_IMG_FOLDER"]):
-                    for filename in filenames:
-                        os.remove(os.path.join(root, filename))
-
-
-class match_known_descriptor(Resource):
-    def post(self):
-        # there should be only one file
-        filenames = os.listdir(app.config['DESCRIPTORS_FOLDER'])
-        with open(os.path.join(app.config["DESCRIPTORS_FOLDER"], filenames[0]), "rb") as file:
-            known_descriptor = pickle.load(file)
-
-        user_name = filenames[0].replace('.smith','')
-        match_result = MatchKnownDescriptor(known_descriptor, app.config["TEMP_IMG_FOLDER"])
-        
-        print('user_name: {}'.format(match_result))
-        return jsonify({'user': user_name, 'match': match_result})
-
-
-
-class verify_descriptor(Resource):
-    def post(self):
-        args = request.get_json()
-        if "descriptor" in args and "user" in args:
-            user = args["user"]
-            descriptor = args["descriptor"]
-            # for the hashing and database to work on the list,
-            # we convert it to list and then encode to byteformat
-            descriptor_server = str(descriptor[: len(descriptor) // 2]).encode()
-            descriptor_user = str(descriptor[len(descriptor) // 2:]).encode()
-            descriptor = str(descriptor).encode()
-            # DEBUG: there is an issue with lossy recovery of our holography encryption,
-            # DEBUG: the hashed results will not match
-            # a byte format salt
-            salt1 = os.urandom(50)
-            descriptor_hash = hashlib.sha512(descriptor + salt1).hexdigest()
-            # the salt2 and descriptor_user_hash are all downloaded
-            salt2 = os.urandom(50)
-            descriptor_user_hash = hashlib.sha512(descriptor_user + salt2).hexdigest()
-
-            # need to convert pickle into byte
-            descriptor_entry = DescriptorEntry(
-                user=user,
-                salt1=str(salt1),
-                descriptor_hash=str(descriptor_hash),
-                descriptor_server=str(descriptor_server),
-                descriptor_user_hash=str(descriptor_user_hash),
-            )
-
-            db.session.add(descriptor_entry)
-            db.session.commit()
-
-            return jsonify({"descriptor_user": str(descriptor_user), "salt2": str(salt2)})
-
-        elif "descriptor_user" in args and "salt2" in args:
             # user upload the half of descriptor and salt2
             # conver the string back to bytes
-            descriptor_user = eval(args["descriptor_user"])
-            salt2 = eval(args["salt2"])
-            generated_descriptor_user_hash = hashlib.sha512(descriptor_user + salt2).hexdigest()
+            generated_descriptor_user_hash = generate_user_descriptor_hash(user_descriptor, salt2)
             # directly query the database to find the matching hash to idetify user
             descriptor_entry = DescriptorEntry.query.filter_by(
                 descriptor_user_hash=generated_descriptor_user_hash
             ).first()
             if descriptor_entry:
-                user = descriptor_entry.user
+                # the username is fetched from database
+                user_name = descriptor_entry.user_name
                 # to recover from the byte format to list
-                descriptor_server = eval(descriptor_entry.descriptor_server.decode())
-                descriptor_user = eval(descriptor_user.decode())
+                server_descriptor = eval(descriptor_entry.server_descriptor.decode())
+                user_descriptor= eval(user_descriptor.decode())
 
                 # holographic recombine
-                descriptor = descriptor_server + descriptor_user
+                known_descriptor = server_descriptor + user_descriptor
+                # save it to data.json
+                folder = os.path.join(app.config["TEMP"], session['random_id'])
+                json_path = os.path.join(folder, 'data.json')
+                FaceReconHelper = FaceReconHelperClassBuilder(json_path)
+                FaceReconHelper.LoadKnownDescriptor(known_descriptor)
 
-            return jsonify({"user": user, "descriptor": descriptor})
+
+                return {
+                        "filename": file.filename,
+                        "user_name": user_name, 
+                        "message": "key uploaded successfully",
+                        "status": "success",
+                    }
+
+            else:
+                return {
+                        "filename": file.filename,
+                        "message": "something is wrong",
+                        "status": "failed",
+                    }
+        
+
+
+class match_known_descriptor(Resource):
+    def post(self):
+        # there should be only one file
+        args=request.get_json()
+        # DEBUG: whether we can save random_id to session?
+        folder = os.path.join(app.config["TEMP"], session['random_id'])
+        json_path = os.path.join(folder, 'data.json')
+        FaceReconHelper = FaceReconHelperClassBuilder(json_path)
+        match_result = FaceReconHelper.CompareDescriptors()
+        # user_name should be availble to frontend when uploaded files 
+        return jsonify({'match': match_result})
+
+
+class generate_smith_key(Resource):
+    ''' upload descriptor and hash it and save it to database and produce .smith key '''
+    def post(self):
+        # NOTE: random_id should be provided by the frontend
+        session['random_id'] = '123456'
+        file = request.files.get("file")
+        # Vue formData
+        user_name = request.form.get('user_name', 'tester')
+        # first generate the descriptor using the uploaded image
+        if file:
+            if file.filename != 'known_face.jpg':
+                return {"message": "No file found", "status": "error"}
+            else:
+                folder = os.path.join(app.config["TEMP_FOLDER"], session['random_id'])
+                # read file without saving to local filesystem
+                json_path = os.path.join(folder, 'data.json')
+                FaceReconHelper = FaceReconHelperClassBuilder(json_path)
+                known_descriptor = FaceReconHelper.GenerateDescriptor(image_path=file, unknown=False)
+
+                # for the hashing and database to work on the list,
+                # we convert it to list and then encode to byteformat
+                salt1, descriptor_hash , user_descriptor, salt2, user_descriptor_hash, server_descriptor = split_and_hash_descriptor(known_descriptor)
+
+                # Save the hashes and splited descriptor to the server
+                descriptor_entry = DescriptorEntry(
+                    user_name=user_name,
+                    salt1=str(salt1),
+                    descriptor_hash=str(descriptor_hash),
+                    user_descriptor_hash=str(user_descriptor_hash),
+                    server_descriptor=str(server_descriptor),
+                )
+
+                db.session.add(descriptor_entry)
+                db.session.commit()
+
+                return jsonify({"user_descriptor": str(user_descriptor), "salt2": str(salt2)})
+
+
 
 
 api.add_resource(todo_database_access, "/api/todo_db")
 api.add_resource(upload_file, "/api/upload_file")
 api.add_resource(download_file, "/api/download_file/<filename>")
 api.add_resource(existing_files, "/api/existing_files")
-api.add_resource(verify_descriptor, "/api/verify_descriptor")
 api.add_resource(generate_descriptor, "/api/generate_unknown_descriptor")
-api.add_resource(upload_descriptor, '/api/upload_descriptor')
+api.add_resource(upload_smith_key, '/api/upload_smith_key')
 api.add_resource(match_known_descriptor, "/api/match_known_descriptor")
-api.add_resource(initialize_folders, '/api/initialize_folders')
+api.add_resource(initialise_session, '/api/initialise_session')
+api.add_resource(clean_up_session, '/api/clean_up_session')
+api.add_resource(generate_smith_key, '/api/generate_smith_key')
+
 
 
 
