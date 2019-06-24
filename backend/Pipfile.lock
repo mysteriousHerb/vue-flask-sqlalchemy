@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "0ddf307a0cc359055f97b2da001b55d9a29ad6fde555b082344c164420263fba"
+            "sha256": "9269b392bb66f66ea69f8d6274f1db31117fe18092d606c304d52c7122555f86"
         },
         "pipfile-spec": 6,
         "requires": {},
@@ -46,7 +46,7 @@
             "hashes": [
                 "sha256:92587c81b0165e933593f505fdf099dface0d0f8ec874b1d8655fc774598911f"
             ],
-            "path": "./dlib-19.17.0-cp36-cp36m-win_amd64.whl",
+            "index": "pypi",
             "version": "==19.17.0"
         },
         "face-recognition": {
@@ -166,11 +166,11 @@
         },
         "marshmallow-sqlalchemy": {
             "hashes": [
-                "sha256:9b258becf07afa8499512bb35e37fbb54b625d6b70677165764996ba5a88e9f9",
-                "sha256:b795a672e568179633c97e8469310f16f999cf585677cd194dead13cd9ab876a"
+                "sha256:d662fc8103a06b59aafbc33c8ab4f1318799d66aae4f660c1e7e278bc45ef69e",
+                "sha256:f69e740ea8d3b678fd712263e5dd739c94482cd8840e2f6cf4314919e6547cee"
             ],
             "index": "pypi",
-            "version": "==0.16.4"
+            "version": "==0.17.0"
         },
         "numpy": {
             "hashes": [
@@ -303,6 +303,13 @@
                 "sha256:5b94b49521f6456670fdb30cd82a4eca9412788a93fa6dd6df72c94d5a8ff2d7"
             ],
             "version": "==7.0"
+        },
+        "dlib": {
+            "hashes": [
+                "sha256:92587c81b0165e933593f505fdf099dface0d0f8ec874b1d8655fc774598911f"
+            ],
+            "index": "pypi",
+            "version": "==19.17.0"
         },
         "toml": {
             "hashes": [
