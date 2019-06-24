@@ -229,15 +229,11 @@ export default {
         // keep track how many images we have captured
         self.capture_file_count += 1;
         // console.log(this.detections);
-        console.log(self.capture_file_count);
+        // console.log(self.capture_file_count);
         const canvas = self.$refs.canvas_capture;
         var context = canvas.getContext("2d");
         context.clearRect(0, 0, canvas.width, canvas.height);
         var box = self.detections.detection.box;
-        // giving some padding so we dont crop too much which gives problem to backend
-        console.log(box)
-        console.log([canvas.width, canvas.height])
-
 
         // Sending the face with cropped region 
         // drawImage from the video stream, with cropping
@@ -294,6 +290,7 @@ export default {
         method: "POST",
         data: {session_id: this.session_id}
       }).then(response => {
+        console.log(response)
         if (response.data.match) {
           this.confirmed_user = response.data.user;
         }
@@ -368,7 +365,6 @@ export default {
             if (self.liveness_test()) {
               self.instructions.shift();
               self.generate_liveness_test();
-              console.log("Passed one test, now move on!");
             }
           }
         } else {

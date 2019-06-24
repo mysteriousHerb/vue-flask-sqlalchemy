@@ -100,7 +100,7 @@ export default {
   },
   methods: {
     change_view: function(view) {
-      console.log(view);
+      // console.log(view);
       this.$router.push({ name: view });
       this.current_view = view;
     }
