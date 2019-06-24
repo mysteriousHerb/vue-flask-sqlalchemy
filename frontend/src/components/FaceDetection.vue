@@ -216,7 +216,7 @@ export default {
       ]).then(console.log("model loaded"));
     },
     start_video: function() {
-      navigator.getUserMedia(
+      MediaDevices.getUserMedia(
         { video: {} },
         stream => (video.srcObject = stream),
         err => console.error(err)
