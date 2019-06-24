@@ -122,7 +122,15 @@ export default {
     this.start_video();
     this.generate_liveness_test();
   },
-  computed: {},
+  computed: {
+    session_id() {
+      // session_id should be sent to all the axios request to backend now
+      return this.$store.state.session_id;
+    },
+      user_name_in_key(){
+      return this.$store.state.user_name_in_key;
+    }
+  },
   methods: {
     generate_liveness_test: function() {
       // DEBUG: add a timer for each test?
@@ -227,28 +235,40 @@ export default {
         context.clearRect(0, 0, canvas.width, canvas.height);
         var box = self.detections.detection.box;
         // giving some padding so we dont crop too much which gives problem to backend
-        var pad = 0.2 * box.width;
+        console.log(box)
+        console.log([canvas.width, canvas.height])
+
+
+        // Sending the face with cropped region 
         // drawImage from the video stream, with cropping
         context.drawImage(
           self.$refs.video,
-          box.x - pad,
-          box.y - pad,
-          box.width + pad * 2,
-          box.height + pad * 2,
-          box.x - pad,
-          box.y - pad,
-          box.width + pad * 2,
-          box.height + pad * 2
+          box.x,
+          box.y,
+          box.width,
+          box.height,
+          box.x,
+          box.y,
+          box.width,
+          box.height
         );
+
+        // // sending the whole image 
+        //   context.drawImage(
+        //   self.$refs.video,
+        //   0, 0, self.display_size['width'], self.display_size['height']
+        // );
+
+        // // // sending the face_location to backend to save some repetition 
+        // // // top, right, bottom, left
+        const face_location = [box.top, box.right, box.bottom, box.left]
+
+
+
 
         // Saving canvas to local drive is easy: https://github.com/eligrey/FileSaver.js/
         self.$refs.canvas_capture.toBlob(async function(blob) {
           // result = await faceapi.bufferToImage(blob).
-
-          // generate descriptor using face-api.js from the image -- slow
-          // const img = await faceapi.bufferToImage(blob)
-          // self.temp_detections = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor()
-
           // upload Blob as a form to the flask backend and generate descriptors
           // https://github.com/pagekit/vue-resource/blob/master/docs/recipes.md
           let formData = new FormData();
@@ -258,8 +278,10 @@ export default {
             blob,
             "unknown_face_" + self.capture_file_count + ".jpg"
           );
+          formData.append("session_id", self.session_id);
+          formData.append("face_location", face_location);
           self.axios({
-            url: self.$API_URL + "/generate_unknown_descriptor",
+            url: self.$API_URL + "/generate_descriptor",
             method: "POST",
             data: formData
           });
@@ -268,8 +290,9 @@ export default {
     },
     match_known_descriptor: function() {
       this.axios({
-        url: this.$API_URL + "/match_known_descriptor",
-        method: "POST"
+        url: this.$API_URL + "/compare_descriptors",
+        method: "POST",
+        data: {session_id: this.session_id}
       }).then(response => {
         if (response.data.match) {
           this.confirmed_user = response.data.user;
@@ -326,7 +349,7 @@ export default {
           var message = "Hello";
           // only append the username after liveness test
           if (self.instructions.length == 0 && self.confirmed_user != "") {
-            message = "Hello: " + self.confirmed_user + "!";
+            message = "Hello: " + self.user_name_in_key + "!";
           } else if (
             self.instructions.length == 0 &&
             self.confirmed_user == ""
@@ -520,18 +543,6 @@ export default {
       var blob = new Blob([detections_json], { type: "application/json" });
       FileSaver.saveAs(blob, "key.json");
     },
-    communicate_face_descriptor: function() {
-      console.log(this.detections);
-      // specify which person as the algo track all the faces
-      console.log(this.detections["0"].descriptor);
-      this.axios({
-        url: this.$API_URL + "/face_descriptor",
-        method: "POST",
-        data: {
-          descriptor: this.detections["0"].descriptor
-        }
-      }).then(response => {});
-    }
   }
 };
 </script>

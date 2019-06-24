@@ -62,7 +62,7 @@ export default {
         { name: "Home", address: "/", icon: "home", enabled: false },
         { name: "About", address: "/about", icon: "search", enabled: false },
         { name: "Todo", address: "/todo", icon: "edit", enabled: false },
-        { name: "InsertKey", address: "/key", icon: "key", enabled: true },
+        { name: "UploadSmithKey", address: "/upload_key", icon: "key", enabled: true },
         {
           name: "FaceRecognition",
           address: "/face",
@@ -76,7 +76,7 @@ export default {
           enabled: true
         }
       ],
-      current_view: "InsertKey"
+      current_view: "UploadSmithKey"
     };
   },
   computed: {
@@ -84,6 +84,15 @@ export default {
       return this.routes.filter(function(route) {
         return route.enabled;
       });
+    },
+    user_name_in_key(){
+      return this.$store.state.user_name_in_key;
+    },
+  },
+  watch: {
+    // whenever supplied with a key, then change_view
+    user_name_in_key(){
+      this.change_view('FaceRecognition')
     }
   },
   mounted: function() {

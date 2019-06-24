@@ -1,19 +1,17 @@
 <template>
   <div>
-
-    <UploadDescriptor/>
-
+    <UploadSmithKey/>
   </div>
 </template>
 
 <script>
 // @ is an alias to /src
-import UploadDescriptor from "@/components/UploadDescriptor.vue";
+import UploadSmithKey from "@/components/UploadSmithKey.vue";
 
 export default {
   name: "face",
   components: {
-    UploadDescriptor
+    UploadSmithKey
   },
   mounted: function(){
   },

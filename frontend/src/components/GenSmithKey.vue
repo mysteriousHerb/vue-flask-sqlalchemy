@@ -102,18 +102,18 @@ export default {
       else{
         return false
       }
+    },
+    session_id() {
+      // session_id should be sent to all the axios request to backend now
+      return this.$store.state.session_id;
     }
   },
   mounted: function() {
     this.load_faceapi_models();
     this.start_video();
     this.find_margin();
-    this.toggle_dropzone();
   },
   methods: {
-      toggle_dropzone: function(){
-    this.$refs.myVueDropzone.disable()
-  },
     find_margin: function() {
       // var box = this.$refs.video.getBoundingClientRect();
       // this.margin_top = String(box.bottom-box.top) + "px";
@@ -185,9 +185,13 @@ export default {
         height: box.height
       };
       // see DrawBoxOptions below
+      var label = 'Hello, Please type your name first'
+      if (this.user_name !== ''){
+        label = "Hello " + this.user_name + "! Press save to generate your key!"
+      }
       const boxOptions = {
-        label: "Take photo now",
-        lineWidth: 2,
+        label: label,
+        lineWidth: 4,
         boxColor: "rgba(57,255,20,0.8)"
       };
       // flip the x-value x, y, width, height
@@ -206,17 +210,25 @@ export default {
         // giving some padding so we dont crop too much which gives problem to backend
         var pad = 0.2 * box.width;
         // drawImage from the video stream, with cropping
+        // Sending the face with cropped region 
+        // drawImage from the video stream, with cropping
         context.drawImage(
           self.$refs.video,
-          box.x - pad,
-          box.y - pad,
-          box.width + pad * 2,
-          box.height + pad * 2,
-          box.x - pad,
-          box.y - pad,
-          box.width + pad * 2,
-          box.height + pad * 2
+          box.x,
+          box.y,
+          box.width,
+          box.height,
+          box.x,
+          box.y,
+          box.width,
+          box.height
         );
+
+        // sending the face_location to backend to save some repetition 
+        // top, right, bottom, left
+        const face_location = [box.top, box.right, box.bottom, box.left]
+
+
         // Saving canvas to local drive is easy: https://github.com/eligrey/FileSaver.js/
         self.$refs.canvas_capture.toBlob(async function(blob) {
           // upload Blob as a form to the flask backend and generate descriptors
@@ -232,6 +244,9 @@ export default {
             "user_name",
             self.user_name
           )
+          formData.append("session_id", self.session_id);
+          formData.append("face_location", face_location);
+
           self.axios({
             url: self.$API_URL + "/generate_smith_key",
             method: "POST",
@@ -241,11 +256,14 @@ export default {
             const json_file = JSON.stringify(response.data);
             var blob = new Blob([json_file], { type: "application/json" });
             FileSaver.saveAs(blob, self.user_name + ".smith");
+            // refresh the page
+            location.reload();
           });
         });
       }
     },
     upload_photo: function(file, xhr, formData) {
+      formData.append("session_id", this.session_id);
         formData.append(
             "user_name",
             this.user_name

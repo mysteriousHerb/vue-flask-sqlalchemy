@@ -1,9 +1,12 @@
 import hashlib
-import pickle
+import json
 import os
+import numpy as np
 
 def split_and_hash_descriptor(descriptor):
-    # convert list to byte for hashing
+    # convert  np.array to list, otherwise it messes up everything
+    descriptor = np.array(descriptor)
+    descriptor = descriptor.tolist()
     server_descriptor = str(descriptor[: len(descriptor) // 2]).encode()
     user_descriptor = str(descriptor[len(descriptor) // 2:]).encode()
     descriptor = str(descriptor).encode()
@@ -28,7 +31,15 @@ def generate_user_descriptor_hash(user_descriptor, salt2):
     return generated_user_descriptor_hash
 
 
-def read_smith_file(filepath):
+def read_smith_file_old(filepath):
     with open(filepath) as file:
         user_descriptor, salt2 = pickle.load(file)
         return (user_descriptor, salt2)
+
+
+def read_smith_file(file):
+    data = json.load(file)
+    # convert string back to list and bytes
+    user_descriptor = eval(data['user_descriptor'])
+    salt2 = eval(data['salt2'])
+    return (user_descriptor, salt2)
