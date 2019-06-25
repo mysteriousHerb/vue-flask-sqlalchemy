@@ -1,18 +1,36 @@
 <template>
   <div>
-    <v-container id="overlay" fluid v-if="!detected">
-      <v-layout align-center justify-center row fill-height id="overlay_content">
+    <v-container id="overlay" fluid v-if="show_overlay">
+      <v-layout align-center justify-center row fill-height id="overlay_content" v-if="!matched && !access_denied">
         <v-flex xs1>
           <v-fa-icon name="robot" scale="3"/>
         </v-flex>
         <v-flex xs10>
-          <label class="display-3">AI is getting ready, let the camera see you</label>
+          <label class="display-3">AI is getting ready, let the camera see you!</label>
         </v-flex>
         <v-flex xs1>
           <v-fa-icon name="camera" scale="3"/>
         </v-flex>
       </v-layout>
+      <v-layout align-center justify-center column id="overlay_content" v-if="matched">
+        <v-flex :style="{'margin-top': '200px'}">
+          <label class="display-3">Access Granted! {{user_name_in_key}}</label>
+        </v-flex>
+        <v-flex>
+          <img src="https://media.giphy.com/media/xT1XGzAnABSXy8DPCU/giphy.gif">
+        </v-flex>
+      </v-layout>
+
+      <v-layout align-center justify-center column id="overlay_content" v-if="access_denied">
+        <v-flex :style="{'margin-top': '200px'}">
+          <label class="display-3">Access Denied!</label>
+        </v-flex>
+        <v-flex>
+          <img src="https://media.giphy.com/media/3HAYjf9agsx7U3aXKXm/giphy.gif">
+        </v-flex>
+      </v-layout>
     </v-container>
+
     <v-container grid-list-md text-xs-center fluid>
       <v-layout justify-center v-if="current_instruction.command.length != 0" class="display-2">
         <label>
@@ -77,7 +95,9 @@ export default {
       detections: [],
       temp_detections: [],
       capture_file_count: 0,
-      detected: false,
+      first_detected: false,
+      matched: false,
+      access_denied: false,
       resizedDetections: [],
       confirmed_user: "",
       refresh_time: 50,
@@ -127,8 +147,15 @@ export default {
       // session_id should be sent to all the axios request to backend now
       return this.$store.state.session_id;
     },
-      user_name_in_key(){
+    user_name_in_key() {
       return this.$store.state.user_name_in_key;
+    },
+    show_overlay() {
+      if (this.matched || !this.first_detected || this.access_denied) {
+        return true;
+      } else {
+        return false;
+      }
     }
   },
   methods: {
@@ -235,7 +262,7 @@ export default {
         context.clearRect(0, 0, canvas.width, canvas.height);
         var box = self.detections.detection.box;
 
-        // Sending the face with cropped region 
+        // Sending the face with cropped region
         // drawImage from the video stream, with cropping
         context.drawImage(
           self.$refs.video,
@@ -249,18 +276,15 @@ export default {
           box.height
         );
 
-        // // sending the whole image 
+        // // sending the whole image
         //   context.drawImage(
         //   self.$refs.video,
         //   0, 0, self.display_size['width'], self.display_size['height']
         // );
 
-        // // // sending the face_location to backend to save some repetition 
+        // // // sending the face_location to backend to save some repetition
         // // // top, right, bottom, left
-        const face_location = [box.top, box.right, box.bottom, box.left]
-
-
-
+        const face_location = [box.top, box.right, box.bottom, box.left];
 
         // Saving canvas to local drive is easy: https://github.com/eligrey/FileSaver.js/
         self.$refs.canvas_capture.toBlob(async function(blob) {
@@ -275,7 +299,7 @@ export default {
             "unknown_face_" + self.capture_file_count + ".jpg"
           );
           formData.append("session_id", self.session_id);
-          console.log(self.session_id)
+          // console.log(self.session_id);
           formData.append("face_location", face_location);
           self.axios({
             url: self.$API_URL + "/generate_descriptor",
@@ -286,15 +310,19 @@ export default {
       }
     },
     match_known_descriptor: function() {
-      console.log(this.session_id)
+      // console.log(this.session_id);
       this.axios({
         url: this.$API_URL + "/compare_descriptors",
         method: "POST",
-        data: {session_id: this.session_id}
+        data: { session_id: this.session_id }
       }).then(response => {
-        console.log(response)
+        console.log(response);
         if (response.data.match) {
           this.confirmed_user = response.data.user;
+          this.matched = true;
+        } else {
+          this.matched = false;
+          this.access_denied = true;
         }
       });
     },
@@ -322,7 +350,7 @@ export default {
         // .withFaceDescriptors();
 
         if (self.detections) {
-          self.detected = true;
+          self.first_detected = true;
           // calculated the size that is on our canvas size
           const resizedDetections = faceapi.resizeResults(
             self.detections,
@@ -540,7 +568,7 @@ export default {
       var detections_json = JSON.stringify(this.detections);
       var blob = new Blob([detections_json], { type: "application/json" });
       FileSaver.saveAs(blob, "key.json");
-    },
+    }
   }
 };
 </script>

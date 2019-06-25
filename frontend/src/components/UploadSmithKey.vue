@@ -1,7 +1,16 @@
 <template>
   <div>
     <v-container fluid>
-      <v-layout align-center justify-center row fill-height>
+      <v-layout :style="{'margin-top': '100px'}" align-center justify-center>
+        <v-flex xs8>
+          <label class="display-3">
+            Upload your .smith key </label>
+            <v-fa-icon name="key" scale="3"/>
+            <v-fa-icon name="arrow-circle-down" scale="3"/>
+          </label>
+        </v-flex>
+      </v-layout>
+      <v-layout align-center justify-center>
         <v-flex xs8>
           <vueDropzone
             ref="myVueDropzone"
@@ -19,6 +28,8 @@
           </vueDropzone>
         </v-flex>
       </v-layout>
+      <v-layout>
+      </v-layout>
     </v-container>
   </div>
 </template>
@@ -26,6 +37,7 @@
 <script>
 import vue2Dropzone from "vue2-dropzone";
 import "vue2-dropzone/dist/vue2Dropzone.min.css";
+import Icon from "vue-awesome/components/Icon";
 
 // import axios from "axios";
 
@@ -36,7 +48,8 @@ export default {
     //  https://stackoverflow.com/questions/52038615/in-vue-js-why-do-we-have-to-export-components-after-importing-them
     // https://alligator.io/vuejs/vue-dropzone/
     // https://rowanwins.github.io/vue-dropzone/docs/dist/#/events
-    vueDropzone: vue2Dropzone
+    vueDropzone: vue2Dropzone,
+    "v-fa-icon": Icon
   },
   data: function() {
     return {
@@ -55,12 +68,11 @@ export default {
       // session_id should be sent to all the axios request to backend now
       return this.$store.state.session_id;
     },
-    user_name_in_key(){
+    user_name_in_key() {
       return this.$store.state.user_name_in_key;
     }
   },
-  mounted: function() {
-  },
+  mounted: function() {},
   methods: {
     upload_smith_key: function(file, xhr, formData) {
       formData.append("session_id", this.session_id);
@@ -79,11 +91,11 @@ export default {
         }).then(response => {});
       }
     },
-    success_upload_key:function(file, response){
-      console.log(response)
-      if (response['message'] == "key uploaded successfully"){
+    success_upload_key: function(file, response) {
+      console.log(response);
+      if (response["message"] == "key uploaded successfully") {
         // send the user_name to vuex store
-        this.$store.dispatch('update_user_name_in_key', response['user_name'])
+        this.$store.dispatch("update_user_name_in_key", response["user_name"]);
       }
     }
   }

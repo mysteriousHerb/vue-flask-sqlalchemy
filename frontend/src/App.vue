@@ -47,13 +47,13 @@
 </template>
 
 <script>
-import Icon from "vue-awesome/components/Icon";
 import GenSessionID from "@/components/GenSessionID.vue";
+import Icon from "vue-awesome/components/Icon";
 
 export default {
   components: {
-    "v-fa-icon": Icon,
-    GenSessionID
+    GenSessionID,
+    "v-fa-icon": Icon
   },
   data: function() {
     return {

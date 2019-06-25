@@ -2,16 +2,18 @@
   <div>
     <v-container fluid>
       <v-layout justify-center>
-        <v-btn @click="check_session">check session</v-btn>
       </v-layout>
     </v-container>
   </div>
 </template>
 
 <script>
+import Icon from "vue-awesome/components/Icon";
 export default {
   name: "GenSessionID",
-  props: {},
+  components: {
+        "v-fa-icon": Icon,
+  },
   data: function() {
     return {
       id_length: 50
