@@ -281,7 +281,7 @@ class generate_descriptor(Resource):
                 json_path = os.path.join(folder, 'data.json')
                 FaceReconHelper = FaceReconHelperClassBuilder(json_path)
                 # Thread will throw file not found error?
-                FaceReconHelper.GenerateDescriptorThread(image_path=image_path, face_location=face_location, unknown=True)
+                FaceReconHelper.GenerateDescriptor(image_path=image_path, face_location=face_location, unknown=True)
 
                 return {
                     "status": "success",

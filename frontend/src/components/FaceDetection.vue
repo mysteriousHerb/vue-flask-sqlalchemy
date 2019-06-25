@@ -275,6 +275,7 @@ export default {
             "unknown_face_" + self.capture_file_count + ".jpg"
           );
           formData.append("session_id", self.session_id);
+          console.log(self.session_id)
           formData.append("face_location", face_location);
           self.axios({
             url: self.$API_URL + "/generate_descriptor",
@@ -285,6 +286,7 @@ export default {
       }
     },
     match_known_descriptor: function() {
+      console.log(this.session_id)
       this.axios({
         url: this.$API_URL + "/compare_descriptors",
         method: "POST",
