@@ -39,12 +39,15 @@ class FaceReconHelperClassBuilder():
         thread = threading.Thread(target=self.GenerateDescriptor, args=[image_path, face_location, unknown])
         thread.start()
 
-    def GenerateDescriptor(self, image_path='image.jpg', face_location=[()], unknown=True):
+    def GenerateDescriptor(self, image_path='image.jpg', face_location=[], unknown=True):
         image = face_recognition.load_image_file(image_path)
         print('reading image...')
         # re-sample the face when calculating encoding will slow down greatly
         # use supplied face_location can greatly speed up things
-        unknown_descriptor = face_recognition.face_encodings(image, face_location, num_jitters=1)
+        if face_location == []:
+            unknown_descriptor = face_recognition.face_encodings(image, num_jitters=1)
+        else:
+            unknown_descriptor = face_recognition.face_encodings(image, face_location, num_jitters=1)
         if len(unknown_descriptor) > 0:
             # as the face_encodings is looking for multiple faces, it returns a list
             # convert ndarray to list to save to json file
@@ -99,10 +102,9 @@ class FaceReconHelperClassBuilder():
 if __name__ == "__main__":
     FaceReconHelper = FaceReconHelperClassBuilder()
     # save new descriptor as unknown_descriptors
-    FaceReconHelper.GenerateDescriptor(image_path='saved_files\\tz275.jpg', unknown=True)
-    FaceReconHelper.GenerateDescriptor(image_path='saved_files\\tz275.jpg', unknown=True)
     # save new descriptor as known_descriptors
-    tianheng_descriptor = FaceReconHelper.GenerateDescriptor(image_path='saved_files\\tz275.jpg', unknown=False)
+    tianheng_descriptor = FaceReconHelper.GenerateDescriptor(image_path=os.path.join('saved_files', 'tz275.jpg'), unknown=True)
+
     FaceReconHelper.LoadKnownDescriptor(tianheng_descriptor)
     # print match result
     print(FaceReconHelper.CompareDescriptors())
