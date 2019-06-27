@@ -104,7 +104,7 @@ if __name__ == "__main__":
     # save new descriptor as unknown_descriptors
     # save new descriptor as known_descriptors
     tianheng_descriptor = FaceReconHelper.GenerateDescriptor(image_path=os.path.join('saved_files', 'tz275.jpg'), unknown=True)
-
+    print(tianheng_descriptor)
     FaceReconHelper.LoadKnownDescriptor(tianheng_descriptor)
     # print match result
     print(FaceReconHelper.CompareDescriptors())

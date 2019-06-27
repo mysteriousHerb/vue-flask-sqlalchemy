@@ -28,6 +28,7 @@
         <v-container>
           <!--this doesnt really have a view component -->
           <GenSessionID/>
+          <!-- https://stackoverflow.com/questions/50796127/back-button-navigation-without-reload-the-previous-page-in-vue-js -->
           <router-view/>
         </v-container>
       </v-content>
@@ -93,7 +94,17 @@ export default {
     // whenever supplied with a key, then change_view
     user_name_in_key(){
       this.change_view('FaceRecognition')
-    }
+    },
+    '$route' (to, from) {
+      // refresh when people click back button..
+      if ( to.path === '/upload_key'){
+        if (from.path !== '/upload_key' && from.path !== '/')
+            {location.reload();}
+      }
+
+      console.log(from.path)
+      console.log(to.path)
+    },
   },
   mounted: function() {
     this.change_view(this.current_view);

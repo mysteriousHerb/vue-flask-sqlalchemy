@@ -92,7 +92,18 @@ export default {
       margin_top: "0px",
       detections: undefined,
       user_name: '',
+      face_detection_function: undefined,
     };
+  },
+  watch: {
+    'this.$router' (to, from) {
+      // react to route changes...
+      console.log(to)
+      console.log(from)
+    },
+  },
+  destroyed() {
+    clearInterval(this.face_detection_function)
   },
   computed: {
     detected: function(){
@@ -142,7 +153,7 @@ export default {
       // arrow function is a pain in vue.js and this async function also seems to cause problem
       let self = this;
 
-      setInterval(async function() {
+      self.face_detection_function = setInterval(async function() {
         //  After face detection and facial landmark prediction the face descriptors
         //  all the results are stored in self.detections
         self.detections = await faceapi

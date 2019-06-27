@@ -3,13 +3,28 @@
     <v-container fluid>
       <v-layout :style="{'margin-top': '100px'}" align-center justify-center>
         <v-flex xs8>
-          <label class="display-3">
-            Upload your .smith key </label>
-            <v-fa-icon name="key" scale="3"/>
-            <v-fa-icon name="arrow-circle-down" scale="3"/>
-          </label>
+          <label class="display-3">Upload your .smith key </label>
+          <v-fa-icon name="key" scale="3"/>
+          <v-fa-icon name="arrow-circle-down" scale="3"/>
         </v-flex>
       </v-layout>
+
+      <v-layout>
+        <v-dialog v-model="error_key" width="500">
+          <v-card>
+            <v-card-text class="display-1" style="color:black">
+              Your Smith key is corrupted, try again.
+              <v-fa-icon name="times-circle" scale="2"/>
+            </v-card-text>
+            <v-divider></v-divider>
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn color="primary" flat @click="error_key = false">OK</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+      </v-layout>
+
       <v-layout align-center justify-center>
         <v-flex xs8>
           <vueDropzone
@@ -28,8 +43,7 @@
           </vueDropzone>
         </v-flex>
       </v-layout>
-      <v-layout>
-      </v-layout>
+      <v-layout></v-layout>
     </v-container>
   </div>
 </template>
@@ -60,7 +74,8 @@ export default {
         thumbnailWidth: 150,
         maxFilesize: 0.5,
         maxFiles: 1
-      }
+      },
+      error_key: false,
     };
   },
   computed: {
@@ -80,22 +95,26 @@ export default {
     remove_file: function(file) {
       // https://alligator.io/vuejs/rest-api-axios/
       // https://github.com/rowanwins/vue-dropzone/issues/85
-      if (this.$refs.myVueDropzone.dropzone.disabled !== true) {
-        console.log("remove file");
-        this.axios({
-          url: this.$API_URL + "/upload_descriptor",
-          method: "POST",
-          data: {
-            remove_file: file["name"]
-          }
-        }).then(response => {});
-      }
+      // if (this.$refs.myVueDropzone.dropzone.disabled !== true) {
+      //   console.log("remove file");
+      //   this.axios({
+      //     url: this.$API_URL + "/upload_descriptor",
+      //     method: "POST",
+      //     data: {
+      //       remove_file: file["name"]
+      //     }
+      //   }).then(response => {});
+      // }
+      console.log('remove keys')
     },
     success_upload_key: function(file, response) {
       console.log(response);
       if (response["message"] == "key uploaded successfully") {
         // send the user_name to vuex store
         this.$store.dispatch("update_user_name_in_key", response["user_name"]);
+      } else {
+        this.error_key = true;
+        this.$refs.myVueDropzone.removeAllFiles()
       }
     }
   }
