@@ -311,9 +311,11 @@ class generate_smith_key(Resource):
                 known_descriptor = FaceReconHelper.GenerateDescriptor(image_path=file, face_location=face_location, unknown=False)
                 # for the hashing and database to work on the list,
                 # we convert it to list and then encode to byteformat
+                # NOTE: the type is now encoded string of list
                 salt1, descriptor_hash , user_descriptor, salt2, user_descriptor_hash, server_descriptor = split_and_hash_descriptor(known_descriptor)
 
                 # Save the hashes and splited descriptor to the server
+                # NOTE: the type is now string of encoded string of list, to unpack: eval(eval(descriptor).decode())
                 descriptor_entry = DescriptorEntry(
                     user_name=user_name,
                     salt1=str(salt1),
@@ -339,8 +341,9 @@ class upload_smith_key(Resource):
             # the .smith file contains the key info: user_descriptor and the salt2
             user_descriptor, salt2 = read_smith_file(file)
             # user upload the half of descriptor and salt2
-            # conver the string back to bytes
-            generated_user_descriptor_hash = generate_user_descriptor_hash(user_descriptor, salt2)
+            # NOTE: conver the string back to bytes for hashing
+            generated_user_descriptor_hash = GenerateUserDescriptorHash(eval(user_descriptor), eval(salt2))
+
             # NOTE: we use the user's half of descriptor's hash to look up value
             # directly query the database to find the matching hash to idetify user
             descriptor_entry = DescriptorEntry.query.filter_by(
@@ -349,15 +352,13 @@ class upload_smith_key(Resource):
             if descriptor_entry:
                 # the username is fetched from database
                 user_name = descriptor_entry.user_name
-                # to recover from the byte format to list
-                # eval(descriptor_entry.server_descriptor) convert str to byte
-                #  then .decode() convert byte to str
-                # then eval() convert str to list
-                server_descriptor = eval(eval(descriptor_entry.server_descriptor).decode())
-                user_descriptor= eval(user_descriptor.decode())
+                # NOTE: the type is now string of encoded string of list, to unpack: eval(eval(descriptor).decode())
+                server_descriptor= eval(eval(descriptor_entry.server_descriptor).decode())
+                # NOTE: the type is now string of encoded string of list, to unpack: eval(eval(descriptor).decode())
+                user_descriptor= eval(eval(user_descriptor).decode())
 
-                # TODO: holographic recombine
-                known_descriptor = server_descriptor + user_descriptor
+                # holographic recombine
+                known_descriptor = RecombineDescriptors(user_descriptor, server_descriptor)
 
                 # save it to data.json
                 folder = os.path.join(app.config["TEMP_FOLDER"], session_id)
@@ -365,7 +366,6 @@ class upload_smith_key(Resource):
                 FaceReconHelper = FaceReconHelperClassBuilder(json_path)
                 print(json_path)
                 FaceReconHelper.LoadKnownDescriptor(known_descriptor)
-
 
                 return {
                         "filename": file.filename,

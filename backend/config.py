@@ -10,4 +10,6 @@ class Config(object):
     TEMP_FOLDER = 'temp'
 
     THREADED=True
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
 
