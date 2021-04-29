@@ -1,0 +1,41 @@
+version: 2
+updates:
+- package-ecosystem: pip
+  directory: "/backend"
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 10
+  ignore:
+  - dependency-name: black
+    versions:
+    - 20.8b1
+    - 21.4b0
+    - 21.4b1
+  - dependency-name: dlib
+    versions:
+    - 19.21.1
+  - dependency-name: flask-sqlalchemy
+    versions:
+    - 2.4.4
+  - dependency-name: waitress
+    versions:
+    - 1.4.4
+- package-ecosystem: npm
+  directory: "/frontend"
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 10
+  ignore:
+  - dependency-name: vuetify
+    versions:
+    - 2.4.10
+    - 2.4.3
+    - 2.4.4
+    - 2.4.5
+    - 2.4.6
+    - 2.4.7
+    - 2.4.8
+    - 2.4.9
+  - dependency-name: "@vue/cli-plugin-babel"
+    versions:
+    - 4.5.11
