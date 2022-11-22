@@ -17,7 +17,7 @@ markupsafe==1.1.1
 marshmallow-sqlalchemy==0.17.0
 marshmallow==3.0.0rc7
 numpy==1.16.4
-pillow==6.0.0
+pillow==9.3.0
 pytz==2019.1
 requests==2.22.0
 six==1.12.0
